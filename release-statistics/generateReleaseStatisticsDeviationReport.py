@@ -9,6 +9,7 @@ __status__ = "Development"
 import sys
 import xlsxwriter
 import argparse
+import os.path
 
 # create a class for a typical section which contains header and data parts
 class Section:
@@ -36,6 +37,63 @@ class Section:
 			if i.isdecimal():
 				numbers.append(i)
 		self.data.append((x[:data_start], numbers))
+
+# Worksheet class for writing individual reports
+class Worksheet:
+	def __init__(self, workbook, name):
+		self.worksheet = workbook.add_worksheet(name)
+		self.row = 0
+
+	def append(self, s):
+		# write headers
+		self.worksheet.write(self.row, 0, s.name)
+		for col in range(0, len(s.headers)):
+			self.worksheet.write(self.row, col + 1, s.headers[col])
+		# from the next row, write the data
+		self.row += 1
+		col = 0
+		for n in (convertList(s.data)):
+			for col in range(0, len(n)):
+				self.worksheet.write(self.row, col, n[col])
+			self.row += 1
+		self.row += 1
+
+# Writer class to open a workbook and write in the worksheets.
+class Writer:
+	def __init__(self, filename):
+		self.workbook = xlsxwriter.Workbook(filename)
+
+	# take a report class and write to a worksheet
+	def writeReport(self, report):
+		worksheet = Worksheet(self.workbook, report.name)
+		for s in report.listOfSections:
+			worksheet.append(s)
+
+	def close(self):
+		while True:
+			self.workbook.close()
+		if filename == '':
+			raise Exception("Please specify the output file name after \"--outputFile\"")
+
+# Report class for opening a file and return a list of sections
+class Report:
+	def __init__(self, filename):
+		self.name = filename
+		self.listOfSections = []
+		with open(filename, 'rt') as in_file:
+			# skip first 6 lines (if an extra empty line is added when generating the report)
+			for i in range(1,6):
+				in_file.readline()
+
+			# read data
+			while True:
+				s = parseSection(in_file)
+				if s is None:
+					break
+				print("writing section " + s.name)
+				self.listOfSections.append(s)
+
+			in_file.close()
 
 # separate the file into sections whereas an empty line
 def parseSection(in_file):
@@ -66,72 +124,33 @@ def convertList(listOfData):
 		l.append(numbers)
 	return l
 
-class Worksheet:
-	def __init__(self, workbook, name):
-		self.worksheet = workbook.add_worksheet(name)
-		self.row = 0
+# Clean-up of path name so it doesn't contain '/' which cannot be written as worksheet name
+def pathNameCleanUp(path):
+	head, tail = os.path.split(path)
+	if tail != '':
+		return tail
+	else:
+		os.path.basename(head)
 
-	def append(self, s):
-		# write headers
-		self.worksheet.write(self.row, 0, s.name)
-		for col in range(0, len(s.headers)):
-			self.worksheet.write(self.row, col + 1, s.headers[col])
-		# from the next row, write the data
-		self.row += 1
-		col = 0
-		for n in (convertList(s.data)):
-			for col in range(0, len(n)):
-				self.worksheet.write(self.row, col, n[col])
-			self.row += 1
-		self.row += 1
-
-
-class Writer:
-	def __init__(self, filename):
-		self.workbook = xlsxwriter.Workbook(filename)
-
-	# take a report class and write to a worksheet
-	def writeReport(self, report):
-		worksheet = Worksheet(self.workbook, report.name)
-		for s in report.listOfSections:
-			worksheet.append(s)
-
-	def close(self):
-		self.workbook.close()
-
-class Report:
-	def __init__(self, filename):
-		self.name = filename
-		self.listOfSections = []
-		with open(filename, 'rt') as in_file:
-			# skip first 6 lines (if an extra empty line is added when generating the report)
-			for i in range(1,6):
-				in_file.readline()
-
-			# read data
-			while True:
-				s = parseSection(in_file)
-				if s is None:
-					break
-				print("writing section " + s.name)
-				self.listOfSections.append(s)
-
-			in_file.close()
-
-
+# parsing argument
 parser = argparse.ArgumentParser()
 parser.add_argument('--curStat', help="path to current statistics report")
-parser.add_argument('--outputFile', help="path to the output file")
 parser.add_argument('--prevStat', help="path to previous statistics report")
+parser.add_argument('--outputFile', help="path to the output file")
+
+# If there is no arguments keyed in, print help message for users
+if len(sys.argv) == 1:
+	parser.print_help()
+	sys.exit(1)
 
 args = parser.parse_args()
 
-w = Writer(args.outputFile)
+w = Writer(pathNameCleanUp(args.outputFile))
 
-r1 = Report(args.curStat)
+r1 = Report(pathNameCleanUp(args.curStat))
 w.writeReport(r1)
 print('********')
-r2 = Report(args.prevStat)
+r2 = Report(pathNameCleanUp(args.prevStat))
 w.writeReport(r2)
 
 # close writer
