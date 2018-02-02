@@ -69,11 +69,17 @@ class Writer:
 		for s in report.listOfSections:
 			worksheet.append(s)
 
+	def writeDiffReport(self, r1, r2):
+		worksheet = DiffWorksheet(self.workbook, "compReport")
+		diffR = DiffReport(r1, r2)
+		diffSecList = DiffSections(diffR.getLs1, diffR.getLs2)
+		listOfLines = DiffLines(diffSecList.diffSec)
+		"""for s in listOfLines.lines:
+			worksheet.append(s)"""
+		worksheet.append(listOfLines.lines)
+
 	def close(self):
-		while True:
-			self.workbook.close()
-		if filename == '':
-			raise Exception("Please specify the output file name after \"--outputFile\"")
+		self.workbook.close()
 
 # Report class for opening a file and return a list of sections
 class Report:
@@ -90,10 +96,56 @@ class Report:
 				s = parseSection(in_file)
 				if s is None:
 					break
-				print("writing section " + s.name)
+				#print("writing section " + s.name)
 				self.listOfSections.append(s)
 
 			in_file.close()
+
+class DiffWorksheet:
+	def __init__(self, workbook, name):
+		self.worksheet = workbook.add_worksheet(name)
+		self.row = 0
+
+	def append(self, listOfLines):
+		col = 0
+		for line in listOfLines:
+			for col in range(0, len(line)):
+				self.worksheet.write(self.row, col, line)
+			self.row += 1
+
+
+class DiffReport:
+	def __init__(self, report1, report2):
+		self.getLs1 = report1.listOfSections
+		self.getLs2 = report2.listOfSections
+
+class DiffSections:
+	def __init__(self, ls1, ls2):
+		self.diffSec = []
+
+		for sec1 in ls1:
+			for sec2 in ls2:
+				if sec1.name == sec2.name:
+					self.diffSec.append([sec1, sec2])
+
+class DiffLines:
+	def __init__(self, diffSecList):
+		self.lines = []
+
+		for secList in diffSecList:
+			s1 = secList[0]
+			s2 = secList[1]
+			self.lines.append(s1.name)
+			self.lines.append([s1.headers, s2.headers])
+			#for i in range(0, len(diffSecList)):
+			d1 = convertList(s1.data)
+			d2 = convertList(s2.data)
+			for l1 in d1:
+				for l2 in d2:
+					if l1[0] == l2[0]:
+						self.lines.append([l1, l2[1:]])
+					else:
+						self.lines.append(l2)
 
 # separate the file into sections whereas an empty line
 def parseSection(in_file):
@@ -152,6 +204,9 @@ w.writeReport(r1)
 print('********')
 r2 = Report(pathNameCleanUp(args.prevStat))
 w.writeReport(r2)
+
+# write differetial report to one of the worksheets
+w.writeDiffReport(r1, r2)
 
 # close writer
 w.close()
