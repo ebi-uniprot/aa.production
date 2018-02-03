@@ -36,25 +36,72 @@ class Section:
 		for i in x[data_start:]:
 			if i.isdecimal():
 				numbers.append(i)
-		self.data.append((x[:data_start], numbers))
+		self.data.append((" ".join(x[:data_start]), numbers))
 
-# Worksheet class for writing individual reports
+# Worksheet class for writing individual reports and differetial report
 class Worksheet:
 	def __init__(self, workbook, name):
 		self.worksheet = workbook.add_worksheet(name)
 		self.row = 0
 
-	def append(self, s):
+	def print_headers(self, name, headers):
 		# write headers
-		self.worksheet.write(self.row, 0, s.name)
-		for col in range(0, len(s.headers)):
-			self.worksheet.write(self.row, col + 1, s.headers[col])
+		self.worksheet.write(self.row, 0, name)
+		for col in range(0, len(headers)):
+			self.worksheet.write(self.row, col + 1, headers[col])
+
+
+	def append(self, s):
+		self.print_headers(s.name, s.headers)
 		# from the next row, write the data
 		self.row += 1
 		col = 0
-		for n in (convertList(s.data)):
+		for n in convertList(s.data):
 			for col in range(0, len(n)):
 				self.worksheet.write(self.row, col, n[col])
+			self.row += 1
+		self.row += 1
+
+	def write_list(self, col, l):
+		for c in range(0, len(l)):
+			self.worksheet.write(self.row, col + c, l[c])
+		return (col + len(l))
+
+	def appendDiff(self, diffSec):
+		(name, headers, diffData) = diffSec
+		self.print_headers(name, headers * 4)
+		self.row += 1
+		for line in diffData.diffSec:
+			col = 0
+			# when there is a difference in name, only write one set of data
+			if len(line) == 2:
+				(lineName, nb) = line
+				self.worksheet.write(self.row, col, lineName)
+				col += 1
+
+			# write two sets of data with the same name
+			elif len(line) == 3:
+				(lineName, nb1, nb2) = line
+				self.worksheet.write(self.row, col, lineName)
+				col += 1
+				col = self.write_list(col, nb1)
+				col = self.write_list(col, nb2)
+				v = []
+				p = []
+				for i in range(0, len(nb1)):
+					diffVal = int(nb1[i]) - int(nb2[i])
+					v.append(diffVal)
+					if int(nb2[i]) == 0:
+						p.append(0.0)
+					else:
+						diffPer = "{:.2%}".format(diffVal / int(nb2[i]))
+						p.append(diffPer)
+				col = self.write_list(col, v)
+				col = self.write_list(col, p)
+			else:
+				print("error")
+			#for col in range(0, len(line)):
+			#	self.worksheet.write(self.row, col, line[col])
 			self.row += 1
 		self.row += 1
 
@@ -70,13 +117,11 @@ class Writer:
 			worksheet.append(s)
 
 	def writeDiffReport(self, r1, r2):
-		worksheet = DiffWorksheet(self.workbook, "compReport")
+		worksheet = Worksheet(self.workbook, "compReport")
 		diffR = DiffReport(r1, r2)
-		diffSecList = DiffSections(diffR.getLs1, diffR.getLs2)
-		listOfLines = DiffLines(diffSecList.diffSec)
-		"""for s in listOfLines.lines:
-			worksheet.append(s)"""
-		worksheet.append(listOfLines.lines)
+
+		for diffSec in diffR.diffSec:
+			worksheet.appendDiff(diffSec)
 
 	def close(self):
 		self.workbook.close()
@@ -101,51 +146,30 @@ class Report:
 
 			in_file.close()
 
-class DiffWorksheet:
-	def __init__(self, workbook, name):
-		self.worksheet = workbook.add_worksheet(name)
-		self.row = 0
-
-	def append(self, listOfLines):
-		col = 0
-		for line in listOfLines:
-			for col in range(0, len(line)):
-				self.worksheet.write(self.row, col, line)
-			self.row += 1
-
 
 class DiffReport:
 	def __init__(self, report1, report2):
-		self.getLs1 = report1.listOfSections
-		self.getLs2 = report2.listOfSections
-
-class DiffSections:
-	def __init__(self, ls1, ls2):
 		self.diffSec = []
 
-		for sec1 in ls1:
-			for sec2 in ls2:
+		for sec1 in report1.listOfSections:
+			for sec2 in report2.listOfSections:
 				if sec1.name == sec2.name:
-					self.diffSec.append([sec1, sec2])
+					self.diffSec.append((sec1.name, sec1.headers, DiffSection(sec1.data, sec2.data)))
 
-class DiffLines:
-	def __init__(self, diffSecList):
-		self.lines = []
+class DiffSection:
+	def __init__(self, d1, d2):
+		self.diffSec = []
 
-		for secList in diffSecList:
-			s1 = secList[0]
-			s2 = secList[1]
-			self.lines.append(s1.name)
-			self.lines.append([s1.headers, s2.headers])
-			#for i in range(0, len(diffSecList)):
-			d1 = convertList(s1.data)
-			d2 = convertList(s2.data)
-			for l1 in d1:
-				for l2 in d2:
-					if l1[0] == l2[0]:
-						self.lines.append([l1, l2[1:]])
-					else:
-						self.lines.append(l2)
+		i = 0
+		while i < len(d1):
+			(lineName1, nb1) = d1[i]
+			(lineName2, nb2) = d2[i]
+			if lineName1 == lineName2:
+				self.diffSec.append((lineName1, nb1, nb2))
+			else:
+				self.diffSec.append(d1[i])
+				self.diffSec.append(d2[i])
+			i += 1
 
 # separate the file into sections whereas an empty line
 def parseSection(in_file):
@@ -168,12 +192,8 @@ def parseSection(in_file):
 def convertList(listOfData):
 	l = []
 	for (name, numbers) in listOfData:
-		if len(name) > 1:
-			n = " ".join(name)
-		else:
-			n = name[0]
-		numbers.insert(0, n)
-		l.append(numbers)
+		#numbers.insert(0, name)
+		l.append([name] + numbers)
 	return l
 
 # Clean-up of path name so it doesn't contain '/' which cannot be written as worksheet name
