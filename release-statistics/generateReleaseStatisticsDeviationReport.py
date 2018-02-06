@@ -47,12 +47,36 @@ class Worksheet:
 	def print_headers(self, name, headers):
 		# write headers
 		self.worksheet.write(self.row, 0, name)
-		for col in range(0, len(headers)):
-			self.worksheet.write(self.row, col + 1, headers[col])
 
+		# according to the length of the headers list, write the headers in the according column
+		col = 1
+		while True:
+			col = self.write_list(col, headers)
+			if col > 12:
+				break
+
+		'''while True:
+			for i in range(0, len(headers)):
+				if len(headers) == 3:
+					self.worksheet.write(self.row, col, headers[i])
+					col += 1
+				elif len(headers) == 2:
+					self.worksheet.write(self.row, col, headers[i])
+					col += 1
+					#self.worksheet.write_blank(self.row, col, None)
+				elif len(headers) == 1:
+					#self.worksheet.write_blank(self.row, col, None)
+					self.worksheet.write(self.row, col + 1, headers[i])
+					col += 3
+					#self.worksheet.write_blank(self.row, col + 2, None)
+			if col > 12:
+				break'''
 
 	def append(self, s):
-		self.print_headers(s.name, s.headers)
+		#self.print_headers(s.name, s.headers)
+		self.worksheet.write(self.row, 0, s.name)
+		for col in range(0, len(s.headers)):
+			self.worksheet.write(self.row, col + 1, s.headers[col])
 		# from the next row, write the data
 		self.row += 1
 		col = 0
@@ -64,12 +88,17 @@ class Worksheet:
 
 	def write_list(self, col, l):
 		for c in range(0, len(l)):
-			self.worksheet.write(self.row, col + c, l[c])
-		return (col + len(l))
+			if len(l) == 1:
+				self.worksheet.write(self.row, col + 1, l[c])
+			else:
+				self.worksheet.write(self.row, col + c, l[c])
+				for i in (0, (3 - len(l) + 1)):
+					self.worksheet.write(self.row, col + i, None)
+		return (col + 3)
 
 	def appendDiff(self, diffSec):
 		(name, headers, diffData) = diffSec
-		self.print_headers(name, headers * 4)
+		self.print_headers(name, headers)
 		self.row += 1
 		for line in diffData.diffSec:
 			col = 0
