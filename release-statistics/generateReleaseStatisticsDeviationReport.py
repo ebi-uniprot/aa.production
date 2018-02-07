@@ -43,10 +43,14 @@ class Worksheet:
 	def __init__(self, workbook, name):
 		self.worksheet = workbook.add_worksheet(name)
 		self.row = 0
+		self.format1 = workbook.add_format({'bold': True, 'underline': True})
+		self.format2 = workbook.add_format({'bg_color': 'orange'})
+		self.format3 = workbook.add_format({'bg_color': 'green'})
+		self.format4 = workbook.add_format({'bg_color': 'blue'})
 
 	def print_headers(self, name, headers):
 		# write headers
-		self.worksheet.write(self.row, 0, name)
+		self.worksheet.write(self.row, 0, name, self.format1)
 
 		# according to the length of the headers list, write the headers in the according column
 		col = 1
@@ -55,28 +59,11 @@ class Worksheet:
 			if col > 12:
 				break
 
-		'''while True:
-			for i in range(0, len(headers)):
-				if len(headers) == 3:
-					self.worksheet.write(self.row, col, headers[i])
-					col += 1
-				elif len(headers) == 2:
-					self.worksheet.write(self.row, col, headers[i])
-					col += 1
-					#self.worksheet.write_blank(self.row, col, None)
-				elif len(headers) == 1:
-					#self.worksheet.write_blank(self.row, col, None)
-					self.worksheet.write(self.row, col + 1, headers[i])
-					col += 3
-					#self.worksheet.write_blank(self.row, col + 2, None)
-			if col > 12:
-				break'''
-
 	def append(self, s):
 		#self.print_headers(s.name, s.headers)
 		self.worksheet.write(self.row, 0, s.name)
 		for col in range(0, len(s.headers)):
-			self.worksheet.write(self.row, col + 1, s.headers[col])
+			self.worksheet.write(self.row, col + 1, s.headers[col], self.format1)
 		# from the next row, write the data
 		self.row += 1
 		col = 0
@@ -97,9 +84,16 @@ class Worksheet:
 		return (col + 3)
 
 	def appendDiff(self, diffSec):
+		self.worksheet.write(0, 1, "Current Stat", self.format1)
+		self.worksheet.write(0, 4, "Previous Stat", self.format1)
+		self.worksheet.write(0, 7, "increase abs", self.format1)
+		self.worksheet.write(0, 10, "increase %", self.format1)
+		self.row += 1
 		(name, headers, diffData) = diffSec
 		self.print_headers(name, headers)
 		self.row += 1
+		#self.diffV = []
+
 		for line in diffData.diffSec:
 			col = 0
 			# when there is a difference in name, only write one set of data
@@ -107,6 +101,7 @@ class Worksheet:
 				(lineName, nb) = line
 				self.worksheet.write(self.row, col, lineName)
 				col += 1
+				col = self.write_list(col, nb)
 
 			# write two sets of data with the same name
 			elif len(line) == 3:
@@ -124,15 +119,41 @@ class Worksheet:
 						p.append(0.0)
 					else:
 						diffPer = "{:.2%}".format(diffVal / int(nb2[i]))
+						#self.diffV.append(diffVal / int(nb2[i]))
 						p.append(diffPer)
+
 				col = self.write_list(col, v)
 				col = self.write_list(col, p)
+
+
 			else:
 				print("error")
-			#for col in range(0, len(line)):
-			#	self.worksheet.write(self.row, col, line[col])
+
 			self.row += 1
 		self.row += 1
+
+		# conditional formatting the percentages columns
+		conRange = 'K3:M105'
+		self.worksheet.conditional_format(conRange, {'type':     'cell',
+												     'criteria': '<',
+												     'value':     '0%',
+												     'format':    self.format2})
+
+		self.worksheet.conditional_format(conRange, {'type':     'cell',
+												     'criteria': '>',
+												     'value':     '5%',
+												     'format':    self.format3})
+		self.worksheet.conditional_format(conRange, {'type':     'cell',
+												     'criteria': '>',
+												     'value':     '10%',
+												     'format':    self.format3})
+		# writing legend
+		self.worksheet.write(3, 14, 'Legend', self.format1)
+		self.worksheet.write(4, 14, 'cutoff values (change to alter colouring)', self.format1)
+		self.worksheet.write(5, 14, 'decrease:  0%', self.format2)
+		self.worksheet.write(6, 14, 'increase:  5%', self.format3)
+		self.worksheet.write(7, 14, 'big increase:  10%', self.format4)
+
 
 # Writer class to open a workbook and write in the worksheets.
 class Writer:
