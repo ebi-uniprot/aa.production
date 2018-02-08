@@ -14,7 +14,7 @@ try:
     import xlsxwriter
 except ImportError:
     print('\nThere was no xlswriter module installed. You can install it with:\npip install xlsxwriter')
-      sys.exit(1)
+    sys.exit(1)
 
 # create a class for a typical section which contains header and data parts
 class Section:
