@@ -265,7 +265,8 @@ parser.add_argument('--curStat', help="path to current statistics report")
 parser.add_argument('--prevStat', help="path to previous statistics report")
 parser.add_argument('--outputFile', help="path to the output file")
 
-# If there is no arguments keyed in, print help message for users
+# TODO: improve the args check so that:
+# if number of arguments is not what is expected (3), print help message for users
 if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
@@ -274,14 +275,14 @@ args = parser.parse_args()
 
 w = Writer(pathNameCleanUp(args.outputFile))
 
-r1 = Report(pathNameCleanUp(args.curStat))
-w.writeReport(r1)
+reportCur = Report(pathNameCleanUp(args.curStat))
+w.writeReport(reportCur)
 print('********')
-r2 = Report(pathNameCleanUp(args.prevStat))
-w.writeReport(r2)
+reportPrev = Report(pathNameCleanUp(args.prevStat))
+w.writeReport(reportPrev)
 
 # write differetial report to one of the worksheets
-w.writeDiffReport(r1, r2)
+w.writeDiffReport(reportCur, reportPrev)
 
 # close writer
 w.close()
