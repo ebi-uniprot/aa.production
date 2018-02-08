@@ -9,6 +9,7 @@ __status__ = "Development"
 import sys
 import argparse
 import os.path
+import re
 
 try:
     import xlsxwriter
@@ -172,7 +173,10 @@ class Writer:
             worksheet.append(s)
 
     def writeDiffReport(self, r1, r2):
-        worksheet = Worksheet(self.workbook, "compReport")
+        xUtil = XlsUtil
+        print("r1.name: {}; r2.name: {}".format(r1.name, r2.name))
+        worksheet = Worksheet(self.workbook,
+                              "compare-{}".format(xUtil.generateDeviationsSheetName(xUtil, r1.name, r2.name)))
         diffR = DiffReport(r1, r2)
 
         for diffSec in diffR.diffSec:
@@ -259,6 +263,32 @@ def pathNameCleanUp(path):
     else:
         os.path.basename(head)
 
+class XlsUtil:
+    # VV: a bit of a sketch, needs testing (test cases defined in
+    def pathNameCleanUp(self, pathToFile):
+        # strip out dir path and extension
+        return os.path.splitext(os.path.basename(pathToFile))[0]
+
+    def generateDeviationsSheetName(self, fP1, fP2):
+        # we want the differences sheet name to incorporate release names so that it's possible to
+        # combine deviation sheets from different reports into a single workbook
+        # a bit of logic to strip out common prefix (if any), plus extension
+        # doesn't deal with suffix atm
+        fP1 = self.pathNameCleanUp(self, fP1)
+        fP2 = self.pathNameCleanUp(self, fP2)
+        cmnPref = os.path.commonprefix([fP1, fP2])
+        if len(cmnPref) > 0:
+            theMatch = re.compile('^[^0-9]*').match(cmnPref)
+            # print('theMatch: {}'.format(theMatch))
+            if theMatch:
+                # print('cmnPref-before: {}'.format(cmnPref))
+                cmnPref = cmnPref[:theMatch.end()]
+                # print('cmnPref-after: {}'.format(cmnPref))
+            fP1 = fP1[len(cmnPref):]
+            fP2 = fP2[len(cmnPref):]
+        return "{}-vs-{}".format(fP1, fP2)
+
+
 # parsing argument
 parser = argparse.ArgumentParser()
 parser.add_argument('--curStat', help="path to current statistics report")
@@ -276,13 +306,12 @@ args = parser.parse_args()
 w = Writer(pathNameCleanUp(args.outputFile))
 
 reportCur = Report(pathNameCleanUp(args.curStat))
-w.writeReport(reportCur)
-print('********')
 reportPrev = Report(pathNameCleanUp(args.prevStat))
-w.writeReport(reportPrev)
 
-# write differetial report to one of the worksheets
+# write deviation report to the 1st worksheet
 w.writeDiffReport(reportCur, reportPrev)
+w.writeReport(reportCur)
+w.writeReport(reportPrev)
 
 # close writer
 w.close()
