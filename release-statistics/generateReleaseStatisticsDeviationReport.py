@@ -9,11 +9,12 @@ __status__ = "Development"
 import sys
 import argparse
 import os.path
+
 try:
     import xlsxwriter
 except ImportError:
-    print('\nThere was no xlswriter module installed. You can install it with:\npip install xlsxwriter')
-    sys.exit(1)
+	print('\nThere was no xlswriter module installed. You can install it with:\npip install xlsxwriter')
+  	sys.exit(1)
 
 # create a class for a typical section which contains header and data parts
 class Section:
