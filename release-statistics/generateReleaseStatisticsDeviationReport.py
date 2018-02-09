@@ -17,6 +17,34 @@ except ImportError:
     print('\nThere was no xlswriter module installed. You can install it with:\npip install xlsxwriter')
     sys.exit(1)
 
+def is_num_list(l):
+    if len(l) == 0:
+        return
+    for i in l:
+        if not (type(i) == type(int()) or type(i) == type(float())):
+            print("is_num_list: %", l)
+            raise ValueError
+
+# Report class for opening a file and return a list of sections
+class Report:
+    def __init__(self, filename):
+        self.name = pathNameCleanUp(filename)
+        self.listOfSections = []
+        with open(filename, 'rt') as in_file:
+            # skip first 6 lines (if an extra empty line is added when generating the report)
+            for i in range(1,6):
+                in_file.readline()
+
+            # read data
+            while True:
+                s = parseSection(in_file)
+                if s is None:
+                    break
+                #print("writing section " + s.name)
+                self.listOfSections.append(s)
+
+            in_file.close()
+
 # create a class for a typical section which contains header and data parts
 class Section:
     def __init__(self, name):
@@ -41,18 +69,45 @@ class Section:
         numbers = []
         for i in x[data_start:]:
             if i.isdecimal():
-                numbers.append(i)
+                numbers.append(float(i))
         self.data.append((" ".join(x[:data_start]), numbers))
+
+class DiffReport:
+    def __init__(self, report1, report2):
+        self.diffSec = []
+
+        for sec1 in report1.listOfSections:
+            for sec2 in report2.listOfSections:
+                if sec1.name == sec2.name:
+                    self.diffSec.append((sec1.name, sec1.headers, DiffSection(sec1.data, sec2.data)))
+
+class DiffSection:
+    def __init__(self, d1, d2):
+        self.diffSec = []
+
+        i = 0
+        while i < len(d1):
+            (lineName1, nb1) = d1[i]
+            (lineName2, nb2) = d2[i]
+            is_num_list(nb1)
+            is_num_list(nb2)
+            if lineName1 == lineName2:
+                self.diffSec.append((lineName1, nb1, nb2))
+            else:
+                self.diffSec.append(d1[i])
+                self.diffSec.append(d2[i])
+            i += 1
 
 # Worksheet class for writing individual reports and differetial report
 class Worksheet:
     def __init__(self, workbook, name):
         self.worksheet = workbook.add_worksheet(name)
         self.row = 0
-        self.format1 = workbook.add_format({'bold': True, 'underline': True})
+        self.format1 = workbook.add_format({'bold': True, 'underline': True, 'align': 'center'})
         self.format2 = workbook.add_format({'bg_color': 'orange'})
         self.format3 = workbook.add_format({'bg_color': 'green'})
         self.format4 = workbook.add_format({'bg_color': 'blue'})
+        self.format5 = workbook.add_format({'num_format': '0.00%'})
 
     def print_headers(self, name, headers):
         # write headers
@@ -61,31 +116,48 @@ class Worksheet:
         # according to the length of the headers list, write the headers in the according column
         col = 1
         while True:
-            col = self.write_list(col, headers)
+            col = self.write_headers(col, headers, self.format1)
             if col > 12:
                 break
 
     def append(self, s):
         #self.print_headers(s.name, s.headers)
-        self.worksheet.write(self.row, 0, s.name)
-        for col in range(0, len(s.headers)):
-            self.worksheet.write(self.row, col + 1, s.headers[col], self.format1)
+        self.worksheet.write(self.row, 0, s.name, self.format1)
+        # for col in range(0, len(s.headers)):
+        #     self.worksheet.write(self.row, col + 1, s.headers[col], self.format1)
         # from the next row, write the data
+        self.write_headers(1, s.headers, self.format1)
         self.row += 1
         col = 0
-        for n in convertList(s.data):
-            for col in range(0, len(n)):
-                self.worksheet.write(self.row, col, n[col])
-            self.row += 1
-        self.row += 1
+        # for n in s.data:
+        #     for col in range(0, len(n)):
+        #         self.worksheet.write(self.row, col, int(n[col]))
+        #     self.row += 1
+        # self.row += 1
 
-    def write_list(self, col, l):
-        for c in range(0, len(l)):
-            if len(l) == 1:
-                self.worksheet.write(self.row, col + 1, l[c])
+        for (name, numbers) in s.data:
+            self.worksheet.write(self.row, col, name, self.format1)
+            col += 1
+            self.write_numbers(0, numbers, None)
+
+    def write_headers(self, col, h, f):
+        for c in range(0, len(h)):
+            if len(h) == 1:
+                self.worksheet.write(self.row, col + 1, h[c], f)
             else:
-                self.worksheet.write(self.row, col + c, l[c])
-                for i in (0, (3 - len(l) + 1)):
+                self.worksheet.write(self.row, col + c, h[c], f)
+                for i in (0, (3 - len(h) + 1)):
+                    self.worksheet.write(self.row, col + i, None)
+        return (col + 3)
+
+    def write_numbers(self, col, n, f):
+        is_num_list(n)
+        for c in range(0, len(n)):
+            if len(n) == 1:
+                self.worksheet.write(self.row, col + 1, n[c], f)
+            else:
+                self.worksheet.write(self.row, col + c, n[c], f)
+                for i in (0, (3 - len(n) + 1)):
                     self.worksheet.write(self.row, col + i, None)
         return (col + 3)
 
@@ -107,15 +179,15 @@ class Worksheet:
                 (lineName, nb) = line
                 self.worksheet.write(self.row, col, lineName)
                 col += 1
-                col = self.write_list(col, nb)
+                col = self.write_numbers(col, nb, None)
 
             # write two sets of data with the same name
             elif len(line) == 3:
                 (lineName, nb1, nb2) = line
                 self.worksheet.write(self.row, col, lineName)
                 col += 1
-                col = self.write_list(col, nb1)
-                col = self.write_list(col, nb2)
+                col = self.write_numbers(col, nb1, None)
+                col = self.write_numbers(col, nb2, None)
                 v = []
                 p = []
                 for i in range(0, len(nb1)):
@@ -124,13 +196,12 @@ class Worksheet:
                     if int(nb2[i]) == 0:
                         p.append(0.0)
                     else:
-                        diffPer = "{:.2%}".format(diffVal / int(nb2[i]))
-                        #self.diffV.append(diffVal / int(nb2[i]))
+                        #diffPer = "{:.2%}".format(diffVal / int(nb2[i]))
+                        diffPer = diffVal / int(nb2[i])
                         p.append(diffPer)
 
-                col = self.write_list(col, v)
-                col = self.write_list(col, p)
-
+                col = self.write_numbers(col, v, None)
+                col = self.write_numbers(col, p, self.format5)
 
             else:
                 print("error")
@@ -160,7 +231,6 @@ class Worksheet:
         self.worksheet.write(6, 14, 'increase:  5%', self.format3)
         self.worksheet.write(7, 14, 'big increase:  10%', self.format4)
 
-
 # Writer class to open a workbook and write in the worksheets.
 class Writer:
     def __init__(self, filename):
@@ -185,51 +255,6 @@ class Writer:
     def close(self):
         self.workbook.close()
 
-# Report class for opening a file and return a list of sections
-class Report:
-    def __init__(self, filename):
-        self.name = filename
-        self.listOfSections = []
-        with open(filename, 'rt') as in_file:
-            # skip first 6 lines (if an extra empty line is added when generating the report)
-            for i in range(1,6):
-                in_file.readline()
-
-            # read data
-            while True:
-                s = parseSection(in_file)
-                if s is None:
-                    break
-                #print("writing section " + s.name)
-                self.listOfSections.append(s)
-
-            in_file.close()
-
-
-class DiffReport:
-    def __init__(self, report1, report2):
-        self.diffSec = []
-
-        for sec1 in report1.listOfSections:
-            for sec2 in report2.listOfSections:
-                if sec1.name == sec2.name:
-                    self.diffSec.append((sec1.name, sec1.headers, DiffSection(sec1.data, sec2.data)))
-
-class DiffSection:
-    def __init__(self, d1, d2):
-        self.diffSec = []
-
-        i = 0
-        while i < len(d1):
-            (lineName1, nb1) = d1[i]
-            (lineName2, nb2) = d2[i]
-            if lineName1 == lineName2:
-                self.diffSec.append((lineName1, nb1, nb2))
-            else:
-                self.diffSec.append(d1[i])
-                self.diffSec.append(d2[i])
-            i += 1
-
 # separate the file into sections whereas an empty line
 def parseSection(in_file):
     dataLines = list()
@@ -248,12 +273,12 @@ def parseSection(in_file):
     return s
 
 # convert data from [ ( [String], [String] ) ] -> [ [ String ] ]
-def convertList(listOfData):
-    l = []
-    for (name, numbers) in listOfData:
-        #numbers.insert(0, name)
-        l.append([name] + numbers)
-    return l
+# def convertList(listOfData):
+#     l = []
+#     for (name, numbers) in listOfData:
+#         #numbers.insert(0, name)
+#         l.append([name] + numbers)
+#     return l
 
 # Clean-up of path name so it doesn't contain '/' which cannot be written as worksheet name
 def pathNameCleanUp(path):
@@ -305,8 +330,8 @@ args = parser.parse_args()
 
 w = Writer(pathNameCleanUp(args.outputFile))
 
-reportCur = Report(pathNameCleanUp(args.curStat))
-reportPrev = Report(pathNameCleanUp(args.prevStat))
+reportCur = Report(args.curStat)
+reportPrev = Report(args.prevStat)
 
 # write deviation report to the 1st worksheet
 w.writeDiffReport(reportCur, reportPrev)
