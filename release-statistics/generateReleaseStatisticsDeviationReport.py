@@ -212,17 +212,18 @@ class Worksheet:
         conRange = 'K3:M105'
         self.worksheet.conditional_format(conRange, {'type':     'cell',
                                                      'criteria': '<',
-                                                     'value':     '0%',
+                                                     'value':     0,
                                                      'format':    self.format2})
 
         self.worksheet.conditional_format(conRange, {'type':     'cell',
-                                                     'criteria': '>',
-                                                     'value':     '5%',
+                                                     'criteria': 'between',
+                                                     'minimum':   0.05,
+                                                     'maximum':   0.10,
                                                      'format':    self.format3})
         self.worksheet.conditional_format(conRange, {'type':     'cell',
                                                      'criteria': '>',
-                                                     'value':     '10%',
-                                                     'format':    self.format3})
+                                                     'value':     0.10,
+                                                     'format':    self.format4})
         # writing legend
         self.worksheet.write(3, 14, 'Legend', self.format1)
         self.worksheet.write(4, 14, 'cutoff values (change to alter colouring)', self.format1)
