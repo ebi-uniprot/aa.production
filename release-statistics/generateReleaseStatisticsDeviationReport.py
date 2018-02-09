@@ -128,7 +128,6 @@ class Worksheet:
         # from the next row, write the data
         self.write_headers(1, s.headers, self.format1)
         self.row += 1
-        col = 0
         # for n in s.data:
         #     for col in range(0, len(n)):
         #         self.worksheet.write(self.row, col, int(n[col]))
@@ -136,9 +135,9 @@ class Worksheet:
         # self.row += 1
 
         for (name, numbers) in s.data:
-            self.worksheet.write(self.row, col, name, self.format1)
-            col += 1
-            self.write_numbers(0, numbers, None)
+            self.worksheet.write(self.row, 0, name)
+            self.write_numbers(1, numbers, None)
+            self.row += 1
 
     def write_headers(self, col, h, f):
         for c in range(0, len(h)):
