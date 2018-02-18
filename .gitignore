@@ -2,3 +2,6 @@
 /.idea
 .DS_Store
 *.swp
+
+# python precompiled files
+**/__pycache__/
