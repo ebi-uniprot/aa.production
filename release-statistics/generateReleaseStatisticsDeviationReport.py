@@ -260,7 +260,7 @@ class Writer:
 def parseSection(in_file):
     dataLines = list()
     while 1:
-        line = in_file.readline()
+        line = in_file.readline().rstrip('\n')
         if not line or line == "\n":
             break
         dataLines.append(line)
