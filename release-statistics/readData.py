@@ -8,8 +8,13 @@ class Report:
         self.listOfSections = []
         with open(path, 'rt') as in_file:
             # skip first 6 lines (if an extra empty line is added when generating the report)
-            for i in range(1,6):
-                in_file.readline()
+            # for i in range(1,6):
+            #     in_file.readline()
+
+            # read data from the first empty line
+            for line in in_file:
+                if line is None or line == '\n':
+                    break
 
             # read data
             while True:
