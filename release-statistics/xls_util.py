@@ -7,6 +7,12 @@ class XlsUtil:
     def pathNameCleanUp(self, pathToFile):
         # strip out dir path and extension
         return os.path.splitext(os.path.basename(pathToFile))[0]
+        # Clean-up of path name so it doesn't contain '/' which cannot be written as worksheet name
+        # head, tail = os.path.split(pathToFile)
+        # if tail != '':
+        #     return tail
+        # else:
+        #     os.path.basename(head)
 
     def generate_deviations_sheet_name(self, fp1, fp2):
         # we want the differences sheet name to incorporate release names so that it's possible to
