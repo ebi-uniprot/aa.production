@@ -2,6 +2,7 @@
 /.idea
 .DS_Store
 *.swp
+*.xlsx
 
 # python precompiled files
 **/__pycache__/
