@@ -29,14 +29,26 @@ parser.add_argument('--outputFile', help="path to the output file")
 
 # improve the args check so that:
 # if number of arguments is not what is expected (3), print help message for users
-if len(sys.argv) == 1 or len(sys.argv) != 7:
+#if len(sys.argv) == 1 or len(sys.argv) != 7:
+
+args = parser.parse_args()
+def error_args(s):
+    print(s)
     parser.print_help()
     sys.exit(1)
 
+if args.outputFile is None:
+    error_args("Please type in the output file after \' --outputFile \'")
+
+if args.curStat is None:
+    error_args("Please input the current statistics report after \' --curStat \'")
+
+if args.prevStat is None:
+    error_args("Please input the previous statistics report after \' --prevStat \'")
+
+
 #print(len(sys.argv))
 #print(str(sys.argv))
-
-args = parser.parse_args()
 
 #w = Writer(pathNameCleanUp(args.outputFile))
 w = Writer(args.outputFile)
