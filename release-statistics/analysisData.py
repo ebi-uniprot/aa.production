@@ -23,15 +23,25 @@ class DiffSection:
     def __init__(self, d1, d2):
         self.diffSec = []
 
-        i = 0
-        while i < len(d1):
-            (lineName1, nb1) = d1[i]
-            (lineName2, nb2) = d2[i]
-            is_num_list(nb1)
-            is_num_list(nb2)
-            if lineName1 == lineName2:
-                self.diffSec.append((lineName1, nb1, nb2))
-            else:
-                self.diffSec.append(d1[i])
-                self.diffSec.append(d2[i])
-            i += 1
+        # i = 0
+        # while i < len(d1):
+        #     (lineName1, nb1) = d1[i]
+        #     (lineName2, nb2) = d2[i]
+        #     is_num_list(nb1)
+        #     is_num_list(nb2)
+        #     if lineName1 == lineName2:
+        #         self.diffSec.append((lineName1, nb1, nb2))
+        #    else:
+        #         self.diffSec.append(d1[i])
+        #         self.diffSec.append(d2[i])
+        #    i += 1
+
+        for (linename1, nb1) in d1:
+            for(linename2, nb2) in d2:
+                if linename2 == linename1:
+                    is_num_list(nb1)
+                    is_num_list(nb2)
+                    self.diffSec.append((linename1, nb1, nb2))
+                #else:
+                #    self.diffSec.append((linename1, nb1))
+                #    self.diffSec.append((linename2, nb2))
