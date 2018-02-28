@@ -13,7 +13,7 @@ class Worksheet:
     def __init__(self, workbook, name):
         self.worksheet = workbook.add_worksheet(name)
         self.row = 0
-        self.format1 = workbook.add_format({'bold': True, 'underline': True, 'align': 'center'})
+        self.format1 = workbook.add_format({'bold': True, 'underline': True, 'align': 'center', 'center_across': True})
         self.format2 = workbook.add_format({'bg_color': 'orange'})
         self.format3 = workbook.add_format({'bg_color': 'green'})
         self.format4 = workbook.add_format({'bg_color': 'blue'})
@@ -63,11 +63,15 @@ class Worksheet:
                     self.worksheet.write(self.row, col + i, None)
         return (col + 3)
 
-    def appendDiff(self, diffSec):
-        self.worksheet.write(0, 1, "Current Stat", self.format1)
-        self.worksheet.write(0, 4, "Previous Stat", self.format1)
-        self.worksheet.write(0, 7, "increase abs", self.format1)
-        self.worksheet.write(0, 10, "increase %", self.format1)
+    def appendDiff(self, diffSec, r1, r2):
+        self.worksheet.write(0, 1, r1.name, self.format1)
+        self.worksheet.write(0, 4, r2.name, self.format1)
+        self.worksheet.write(0, 7,
+                                "increase {} --> {}, abs".format(r1.name, r2.name),
+                                self.format1)
+        self.worksheet.write(0, 10,
+                                "increase {} --> {}, %".format(r1.name, r2.name),
+                                self.format1)
         self.row += 1
         (name, headers, diffData) = diffSec
         self.print_headers(name, headers)
@@ -152,7 +156,7 @@ class Writer:
         diffR = DiffReport(r1, r2)
 
         for diffSec in diffR.diffSec:
-            worksheet.appendDiff(diffSec)
+            worksheet.appendDiff(diffSec, r1, r2)
 
     def close(self):
         self.workbook.close()
