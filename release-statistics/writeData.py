@@ -64,12 +64,12 @@ class Worksheet:
         return (col + 3)
 
     def appendDiff(self, diffSec, r1, r2):
-        self.worksheet.write(0, 1, r1.name, self.format1)
-        self.worksheet.write(0, 4, r2.name, self.format1)
-        self.worksheet.write(0, 7,
+        self.worksheet.write(0, 2, r1.name, self.format1)
+        self.worksheet.write(0, 5, r2.name, self.format1)
+        self.worksheet.write(0, 8,
                                 "increase {} --> {}, abs".format(r1.name, r2.name),
                                 self.format1)
-        self.worksheet.write(0, 10,
+        self.worksheet.write(0, 11,
                                 "increase {} --> {}, %".format(r1.name, r2.name),
                                 self.format1)
         self.row += 1

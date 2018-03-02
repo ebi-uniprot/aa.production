@@ -35,23 +35,30 @@ class Section:
     def append(self, line):
         x = line.split()
         data_start = 0
-        # treat the special case (those ends with "entries" in the file), mark
-        # it in such a way that data (aka number) starts after the name of system
-        while not x[data_start].endswith(":") and not x[data_start].isdecimal():
-            data_start += 1
 
-        # read the header once
-        if len(self.headers) == 0:
+        if self.name.startswith('Global'):
+            # special cases -the last two sections, started with Global
+            #self.headers.append(('', 'entries', '% of Trembl'))
+            print('printing headers: ', self.headers)
+
+        else:
+            # treat the special case (those ends with "entries" in the file), mark
+            # it in such a way that data (aka number) starts after the name of system
+            while not x[data_start].endswith(":") and not x[data_start].isdecimal():
+                data_start += 1
+
+            # read the header once
+            if len(self.headers) == 0:
+                for i in x[data_start:]:
+                    if not i.isdecimal():
+                        self.headers.append(i)
+
+            # data is in a format of list of tuples, each of which contains two lists of strings
+            numbers = []
             for i in x[data_start:]:
-                if not i.isdecimal():
-                    self.headers.append(i)
-
-        # data is in a format of list of tuples, each of which contains two lists of strings
-        numbers = []
-        for i in x[data_start:]:
-            if i.isdecimal():
-                numbers.append(float(i))
-        self.data.append((" ".join(x[:data_start]), numbers))
+                if i.isdecimal():
+                    numbers.append(float(i))
+            self.data.append((" ".join(x[:data_start]), numbers))
 
 # separate the file into sections whereas an empty line
 def parseSection(in_file):
