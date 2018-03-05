@@ -68,12 +68,12 @@ class Worksheet:
 
     def appendDiff(self, diffSec, r1, r2):
         # TODO merge the cells for main header
-        self.worksheet.write(0, 2, r1.name, self.format1)
-        self.worksheet.write(0, 5, r2.name, self.format1)
-        self.worksheet.write(0, 8,
+        self.worksheet.merge_range('B1:D1', r1.name, self.format1)
+        self.worksheet.merge_range('E1:G1', r1.name, self.format1)
+        self.worksheet.merge_range('H1:J1',
                                 "increase {} --> {}, abs".format(r1.name, r2.name),
                                 self.format1)
-        self.worksheet.write(0, 11,
+        self.worksheet.merge_range('K1:M1',
                                 "increase {} --> {}, %".format(r1.name, r2.name),
                                 self.format1)
         self.row += 1
