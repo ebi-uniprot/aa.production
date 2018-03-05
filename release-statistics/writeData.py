@@ -43,6 +43,7 @@ class Worksheet:
             self.worksheet.write(self.row, 0, name, self.format6)
             self.write_numbers(1, numbers, self.format6)
             self.row += 1
+        self.row += 1
 
     def write_headers(self, col, h, f):
         for c in range(0, len(h)):
