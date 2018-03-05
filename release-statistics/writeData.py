@@ -13,11 +13,13 @@ class Worksheet:
     def __init__(self, workbook, name):
         self.worksheet = workbook.add_worksheet(name)
         self.row = 0
-        self.format1 = workbook.add_format({'bold': True, 'underline': True, 'align': 'center', 'center_across': True})
-        self.format2 = workbook.add_format({'bg_color': 'orange'})
-        self.format3 = workbook.add_format({'bg_color': 'green'})
-        self.format4 = workbook.add_format({'bg_color': 'blue'})
-        self.format5 = workbook.add_format({'num_format': '0.00%'})
+        self.format1 = workbook.add_format({'bold': True, 'underline': True, 'align': 'center', 'center_across': True,
+                                            'font_name': 'Arial', 'font_size': 10})
+        self.format2 = workbook.add_format({'bg_color': 'orange', 'font_name': 'Arial', 'font_size': 10})
+        self.format3 = workbook.add_format({'bg_color': 'green', 'font_name': 'Arial', 'font_size': 10})
+        self.format4 = workbook.add_format({'bg_color': 'blue', 'font_name': 'Arial', 'font_size': 10})
+        self.format5 = workbook.add_format({'num_format': '0.00%', 'font_name': 'Arial', 'font_size': 10})
+        self.format6 = workbook.add_format({'font_name': 'Arial', 'font_size': 10})
 
     def print_headers(self, name, headers):
         # write headers
@@ -38,8 +40,8 @@ class Worksheet:
         self.row += 1
 
         for (name, numbers) in s.data:
-            self.worksheet.write(self.row, 0, name)
-            self.write_numbers(1, numbers, None)
+            self.worksheet.write(self.row, 0, name, self.format6)
+            self.write_numbers(1, numbers, self.format6)
             self.row += 1
 
     def write_headers(self, col, h, f):
@@ -64,6 +66,7 @@ class Worksheet:
         return (col + 3)
 
     def appendDiff(self, diffSec, r1, r2):
+        # TODO merge the cells for main header
         self.worksheet.write(0, 2, r1.name, self.format1)
         self.worksheet.write(0, 5, r2.name, self.format1)
         self.worksheet.write(0, 8,
@@ -82,17 +85,17 @@ class Worksheet:
             # when there is a difference in name, only write one set of data
             if len(line) == 2:
                 (lineName, nb) = line
-                self.worksheet.write(self.row, col, lineName)
+                self.worksheet.write(self.row, col, lineName, self.format6)
                 col += 1
-                col = self.write_numbers(col, nb, None)
+                col = self.write_numbers(col, nb, self.format6)
 
             # write two sets of data with the same name
             elif len(line) == 3:
                 (lineName, nb1, nb2) = line
-                self.worksheet.write(self.row, col, lineName)
+                self.worksheet.write(self.row, col, lineName, self.format6)
                 col += 1
-                col = self.write_numbers(col, nb1, None)
-                col = self.write_numbers(col, nb2, None)
+                col = self.write_numbers(col, nb1, self.format6)
+                col = self.write_numbers(col, nb2, self.format6)
                 v = []
                 p = []
                 for i in range(0, len(nb1)):
@@ -105,7 +108,7 @@ class Worksheet:
                         diffPer = diffVal / int(nb2[i])
                         p.append(diffPer)
 
-                col = self.write_numbers(col, v, None)
+                col = self.write_numbers(col, v, self.format6)
                 col = self.write_numbers(col, p, self.format5)
 
             else:
