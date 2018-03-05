@@ -29,7 +29,8 @@ class Report:
 # create a class for a typical section which contains header and data parts
 class Section:
     def __init__(self, name):
-        self.name = name
+        # remove leading and trailing whitespaces plus trailing colon:
+        self.name = name.strip().rstrip(':')
         self.headers = []
         self.data = []
     def append(self, line):
