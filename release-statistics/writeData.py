@@ -19,7 +19,7 @@ class Worksheet:
         self.format3 = workbook.add_format({'bg_color': 'green', 'font_name': 'Arial', 'font_size': 10})
         self.format4 = workbook.add_format({'bg_color': 'blue', 'font_name': 'Arial', 'font_size': 10})
         self.format5 = workbook.add_format({'num_format': '0.00%', 'font_name': 'Arial', 'font_size': 10})
-        self.format6 = workbook.add_format({'font_name': 'Arial', 'font_size': 10})
+        self.format6 = workbook.add_format({'num_format': '#,###', 'font_name': 'Arial', 'font_size': 10})
 
     def print_headers(self, name, headers):
         # write headers
