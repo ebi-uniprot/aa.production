@@ -14,13 +14,14 @@ class Report:
 
             # read data
             while True:
-                s = parseSection(in_file)
+                s = parse_section(in_file)
                 if s is None:
                     break
                 #print("writing section " + s.name)
                 self.listOfSections.append(s)
 
             in_file.close()
+
 
 # create a class for a typical section which contains header and data parts
 class Section:
@@ -29,15 +30,16 @@ class Section:
         self.name = name.strip().rstrip(':')
         self.headers = []
         self.data = []
+
     def append(self, line):
         x = line.split()
         data_start = 0
 
         if self.name.startswith('Global'):
             # special cases -the last two sections, started with Global
-            #self.headers.append(('', 'entries', '% of Trembl'))
-            print('printing headers: ', self.headers)
-
+            # self.headers.append(('', 'entries', '% of Trembl'))
+            # print('printing headers: ', self.headers)
+            pass
         else:
             # treat the special case (those ends with "entries" in the file), mark
             # it in such a way that data (aka number) starts after the name of system
@@ -48,7 +50,7 @@ class Section:
             if len(self.headers) == 0:
                 for i in x[data_start:]:
                     if not i.isdecimal():
-                        self.headers.append(i)
+                        self.headers.append(i.rstrip(':'))
 
             # data is in a format of list of tuples, each of which contains two lists of strings
             numbers = []
@@ -57,8 +59,10 @@ class Section:
                     numbers.append(float(i))
             self.data.append((" ".join(x[:data_start]), numbers))
 
+
 # separate the file into sections whereas an empty line
-def parseSection(in_file):
+def parse_section(in_file):
+    # TODO: optimise by avoiding iterating over the lines twice
     dataLines = list()
     while 1:
         line = in_file.readline().rstrip('\n')
