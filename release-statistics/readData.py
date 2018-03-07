@@ -1,5 +1,7 @@
 # Classes for reading in data and separate them into sections
 from xls_util import XlsUtil
+from txt_util import has_text, skip_first_section
+
 
 # Report class for opening a file and return a list of sections
 class Report:
@@ -7,14 +9,8 @@ class Report:
         self.name = XlsUtil().pathNameCleanUp(path)
         self.listOfSections = []
         with open(path, 'rt') as in_file:
-            # skip first 6 lines (if an extra empty line is added when generating the report)
-            # for i in range(1,6):
-            #     in_file.readline()
 
-            # read data from the first empty line
-            for line in in_file:
-                if line is None or line == '\n':
-                    break
+            skip_first_section(in_file)
 
             # read data
             while True:
@@ -77,3 +73,4 @@ def parseSection(in_file):
     for l in dataLines[1:]:
         s.append(l)
     return s
+
