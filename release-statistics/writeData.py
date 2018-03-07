@@ -149,7 +149,7 @@ class Writer:
     # take a report class and write to a worksheet
     def writeReport(self, report):
         worksheet = Worksheet(self.workbook, report.name)
-        for s in report.listOfSections:
+        for s in report.sections:
             worksheet.append(s)
 
     def writeDiffReport(self, r1, r2):

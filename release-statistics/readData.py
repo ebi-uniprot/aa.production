@@ -7,7 +7,7 @@ from txt_util import has_text, skip_first_section
 class Report:
     def __init__(self, path):
         self.name = XlsUtil().pathNameCleanUp(path)
-        self.listOfSections = []
+        self.sections = []
         with open(path, 'rt') as in_file:
 
             skip_first_section(in_file)
@@ -18,10 +18,7 @@ class Report:
                 if s is None:
                     break
                 #print("writing section " + s.name)
-                self.listOfSections.append(s)
-
-            in_file.close()
-
+                self.sections.append(s)
 
 # create a class for a typical section which contains header and data parts
 class Section:
