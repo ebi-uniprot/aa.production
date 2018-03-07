@@ -9,9 +9,8 @@ __status__ = "Development"
 import sys
 import argparse
 
-from readData import Report, Section
-from analysisData import DiffReport, DiffSection
-from writeData import Worksheet, Writer
+from readData import Report
+from writeData import Writer
 
 # Clean-up of path name so it doesn't contain '/' which cannot be written as worksheet name -now dealt with in XlsUtil Class
 # def pathNameCleanUp(path):
@@ -51,11 +50,11 @@ if args.prevStat is None:
 #print(str(sys.argv))
 
 #w = Writer(pathNameCleanUp(args.outputFile))
-w = Writer(args.outputFile)
 
 reportCur = Report(args.curStat)
 reportPrev = Report(args.prevStat)
 
+w = Writer(args.outputFile)
 # write deviation report to the 1st worksheet
 w.writeDiffReport(reportCur, reportPrev)
 w.writeReport(reportCur)
