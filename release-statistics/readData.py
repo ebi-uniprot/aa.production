@@ -74,4 +74,3 @@ def parse_section(in_file):
     for l in dataLines[1:]:
         s.append(l)
     return s
-

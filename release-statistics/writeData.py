@@ -14,7 +14,7 @@ class Worksheet:
         self.worksheet = workbook.add_worksheet(name)
         self.row = 0
         self.formatHeader = workbook.add_format({'bold': True, 'underline': True, 'align': 'center', 'center_across': True,
-                                            'font_name': 'Arial', 'font_size': 10})
+                                                'font_name': 'Arial', 'font_size': 10})
         self.format_diff_decrease = workbook.add_format({'bg_color': 'orange', 'font_name': 'Arial', 'font_size': 10})
         self.format_diff_increase_small = workbook.add_format({'bg_color': 'green', 'font_name': 'Arial', 'font_size': 10})
         self.format_diff_increase_big = workbook.add_format({'bg_color': 'blue', 'font_name': 'Arial', 'font_size': 10})
@@ -25,7 +25,6 @@ class Worksheet:
         # write headers
         self.worksheet.write(self.row, 0, name, self.formatHeader)
 
-        # according to the length of the headers list, write the headers in the according column
         col = 1
         while True:
             col = self.write_headers(col, headers, self.formatHeader)
@@ -46,6 +45,8 @@ class Worksheet:
         self.row += 1
 
     def write_headers(self, col, h, f):
+        # according to the length of the headers list, write the headers in the according column
+        # the maximum length of the header list is 3 as in (predictions, entries, rules)
         for c in range(0, len(h)):
             if len(h) == 1:
                 self.worksheet.write(self.row, col + 1, h[c], f)
@@ -56,18 +57,18 @@ class Worksheet:
         return (col + 3)
 
     def write_numbers(self, col, n, f):
-        is_num_list(n)
         for c in range(0, len(n)):
             if len(n) == 1:
-                self.worksheet.write(self.row, col + 1, n[c], f)
+                # using worksheet.write_number() function which only write int or floats.
+                self.worksheet.write_number(self.row, col + 1, n[c], f)
             else:
-                self.worksheet.write(self.row, col + c, n[c], f)
+                self.worksheet.write_number(self.row, col + c, n[c], f)
                 for i in (0, (3 - len(n) + 1)):
                     self.worksheet.write(self.row, col + i, None)
         return (col + 3)
 
     def appendDiff(self, diffSec, r1, r2):
-        # TODO merge the cells for main header
+        # merge the cells for main header
         self.worksheet.merge_range('B1:D1', r1.name, self.formatHeader)
         self.worksheet.merge_range('E1:G1', r1.name, self.formatHeader)
         self.worksheet.merge_range('H1:J1',
@@ -141,16 +142,35 @@ class Worksheet:
         self.worksheet.write(6, 14, 'increase:  5%', self.format_diff_increase_small)
         self.worksheet.write(7, 14, 'big increase:  10%', self.format_diff_increase_big)
 
+    def set_column_width(self, r):
+        listOfNamesLength = []
+        listOfMaxNamesLength = []
+        for s in r.sections:
+            for (name, numbers) in s.data:
+                listOfNamesLength.append(len(name))
+            # a list of max length of names in each section
+            listOfMaxNamesLength.append(max(listOfNamesLength))
+        # add another 2 so that the length of column cover the whole text length
+        self.worksheet.set_column(0, 0, max(listOfMaxNamesLength) + 2)
+
 # Writer class to open a workbook and write in the worksheets.
 class Writer:
     def __init__(self, filename):
         self.workbook = xlsxwriter.Workbook(filename)
+        # self.formatHeader = self.workbook.add_format({'bold': True, 'underline': True, 'align': 'center', 'center_across': True,
+        #                                     'font_name': 'Arial', 'font_size': 10})
+        # self.format_diff_decrease = self.workbook.add_format({'bg_color': 'orange', 'font_name': 'Arial', 'font_size': 10})
+        # self.format_diff_increase_small = self.workbook.add_format({'bg_color': 'green', 'font_name': 'Arial', 'font_size': 10})
+        # self.format_diff_increase_big = self.workbook.add_format({'bg_color': 'blue', 'font_name': 'Arial', 'font_size': 10})
+        # self.formatPercent = self.workbook.add_format({'num_format': '0.00%', 'font_name': 'Arial', 'font_size': 10})
+        # self.formatNum = self.workbook.add_format({'num_format': '#,###', 'font_name': 'Arial', 'font_size': 10})
 
     # take a report class and write to a worksheet
     def writeReport(self, report):
         worksheet = Worksheet(self.workbook, report.name)
         for s in report.sections:
             worksheet.append(s)
+        worksheet.set_column_width(report)
 
     def writeDiffReport(self, r1, r2):
         xUtil = XlsUtil()
@@ -164,11 +184,3 @@ class Writer:
 
     def close(self):
         self.workbook.close()
-
-def is_num_list(l):
-    if len(l) == 0:
-        return
-    for i in l:
-        if not (type(i) == type(int()) or type(i) == type(float())):
-            print("is_num_list: %", l)
-            raise ValueError

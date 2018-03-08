@@ -2,13 +2,12 @@
 
 from readData import Report, Section
 
-def is_num_list(l):
-    if len(l) == 0:
-        return
-    for i in l:
-        if not (type(i) == type(int()) or type(i) == type(float())):
-            print("is_num_list: %", l)
-            raise ValueError
+# def is_num_list(l):
+#     if len(l) == 0:
+#         return
+#     for i in l:
+#         if not (type(i) == type(int()) or type(i) == type(float())):
+#             raise ValueError
 
 class DiffReport:
     def __init__(self, report1, report2):

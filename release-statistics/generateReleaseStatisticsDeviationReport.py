@@ -12,14 +12,6 @@ import argparse
 from readData import Report
 from writeData import Writer
 
-# Clean-up of path name so it doesn't contain '/' which cannot be written as worksheet name -now dealt with in XlsUtil Class
-# def pathNameCleanUp(path):
-#     head, tail = os.path.split(path)
-#     if tail != '':
-#         return tail
-#     else:
-#         os.path.basename(head)
-
 # parsing argument
 parser = argparse.ArgumentParser()
 parser.add_argument('--curStat', help="path to current statistics report")
@@ -28,7 +20,7 @@ parser.add_argument('--outputFile', help="path to the output file")
 
 # improve the args check so that:
 # if number of arguments is not what is expected (3), print help message for users
-#if len(sys.argv) == 1 or len(sys.argv) != 7:
+# if len(sys.argv) == 1 or len(sys.argv) != 7
 
 args = parser.parse_args()
 def error_args(s):
