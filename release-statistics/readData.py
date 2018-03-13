@@ -8,6 +8,7 @@ class Report:
     def __init__(self, path):
         self.name = XlsUtil().pathNameCleanUp(path)
         self.sections = []
+        self.footers = []
         with open(path, 'rt') as in_file:
 
             skip_first_section(in_file)
@@ -19,6 +20,8 @@ class Report:
                     break
                 #print("writing section " + s.name)
                 self.sections.append(s)
+                if s.is_footer:
+                    self.footers.append(s)
 
 # create a class for a typical section which contains header and data parts
 class Section:
@@ -27,50 +30,65 @@ class Section:
         self.name = name.strip().rstrip(':')
         self.headers = []
         self.data = []
+        self.is_footer = False
 
     def append(self, line):
         x = line.split()
         data_start = 0
 
-        if self.name.startswith('Global'):
-            # special cases -the last two sections, started with Global
-            # self.headers.append(('', 'entries', '% of Trembl'))
-            # print('printing headers: ', self.headers)
-            pass
-        else:
-            # treat the special case (those ends with "entries" in the file), mark
-            # it in such a way that data (aka number) starts after the name of system
-            while not x[data_start].endswith(":") and not x[data_start].isdecimal():
-                data_start += 1
+        # if line.startswith("Global"):
+        #     print(line)
+        #     pass
+        # else:
+        # treat the special case (those ends with "entries" in the file), mark
+        # it in such a way that data (aka number) starts after the name of system
+        while not x[data_start].endswith(":") and not x[data_start].isdecimal():
+            data_start += 1
 
-            # read the header once
-            if len(self.headers) == 0:
-                for i in x[data_start:]:
-                    if not i.isdecimal():
-                        self.headers.append(i.rstrip(':'))
-
-            # data is in a format of list of tuples, each of which contains two lists of strings
-            numbers = []
+        # read the header once
+        if len(self.headers) == 0:
             for i in x[data_start:]:
-                if i.isdecimal():
-                    numbers.append(float(i))
-            self.data.append((" ".join(x[:data_start]), numbers))
+                if not i.isdecimal():
+                    self.headers.append(i.rstrip(':'))
+
+        # data is in a format of list of tuples, each of which contains two lists of strings
+        numbers = []
+        for i in x[data_start:]:
+            if i.isdecimal():
+                numbers.append(float(i))
+        self.data.append((" ".join(x[:data_start]), numbers))
+
+class Footer:
+    def __init__(self, name):
+        self.name = name.strip().rstrip(':')
+        self.headers = []
+        self.data = []
+        self.is_footer = True
+
+    def append(self, line):
+        print(line)
 
 
 # separate the file into sections whereas an empty line
 def parse_section(in_file):
-    # TODO: optimise by avoiding iterating over the lines twice
-    dataLines = list()
+    # optimise by avoiding iterating over the lines twice
+    s = None
+
     while 1:
-        line = in_file.readline().rstrip('\n')
+        line = in_file.readline()
+        # break when it reaches the end of the file or finds an empty line
         if not line or line == "\n":
             break
-        dataLines.append(line)
 
-    if len(dataLines) == 0:
-        return None
+        # create a section object after each empty line,
+        # using the first line as the name of the section,
+        # then append lines until the next empty one.
+        if s is None:
+            if line.startswith("Global"):
+                s = Footer(line)
+            else:
+                s = Section(line)
+        else:
+            s.append(line)
 
-    s = Section(dataLines[0])
-    for l in dataLines[1:]:
-        s.append(l)
     return s
