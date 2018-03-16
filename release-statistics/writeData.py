@@ -18,7 +18,7 @@ class Worksheet:
     def freeze_panes(self, r, c):
         self.worksheet.freeze_panes(r, c)
 
-    def print_headers(self, name, headers):
+    def print_headers_in_deviation_report(self, name, headers):
         # write headers
         self.worksheet.write(self.row, 0, name, self.format['Header'])
 
@@ -30,15 +30,23 @@ class Worksheet:
 
     def append(self, s):
         self.worksheet.write(self.row, 0, s.name, self.format['Header'])
-
+        if s.is_footer == False:
         # from the next row, write the data
-        self.write_headers(1, s.headers, self.format['Header'])
-        self.row += 1
-
-        for (name, numbers) in s.data:
-            self.worksheet.write(self.row, 0, name, self.format['Num'])
-            self.write_numbers(1, numbers, self.format['Num'])
+            self.write_headers(1, s.headers, self.format['Header'])
             self.row += 1
+
+            for (name, numbers) in s.data:
+                self.worksheet.write(self.row, 0, name, self.format['Num'])
+                self.write_numbers(1, numbers, self.format['Num'])
+                self.row += 1
+        else:
+            self.worksheet.merge_range('A100:C100', s.headers, self.format['Header'])
+            self.row += 2
+            for (name, number) in s.data:
+                self.worksheet.write(self.row, 0, name, self.format['Num'])
+                self.worksheet.write_number(self.row, 1, number, self.format['Num'])
+                self.row += 1
+
         self.row += 1
 
     def write_headers(self, col, h, f):
@@ -76,7 +84,7 @@ class Worksheet:
                                    self.format['Header'])
         self.row += 1
         (name, headers, diffData) = diffSec
-        self.print_headers(name, headers)
+        self.print_headers_in_deviation_report(name, headers)
         self.row += 1
 
         for line in diffData.diffSec:
@@ -142,13 +150,15 @@ class Worksheet:
     def set_column_width(self, r):
         listOfNamesLength = []
         listOfMaxNamesLength = []
+
         for s in r.sections:
             maxLength = 0
-            for (name, numbers) in s.data:
-                # find the max length of names in a section
-                if len(name) > maxLength:
-                    maxLength = len(name)
-            listOfMaxNamesLength.append(maxLength)
+            if s.is_footer == False:
+                for (name, numbers) in s.data:
+                    # find the max length of names in a section
+                    if len(name) > maxLength:
+                        maxLength = len(name)
+                listOfMaxNamesLength.append(maxLength)
         # add another 2 so that the length of column cover the whole text length
         self.worksheet.set_column(0, 0, max(listOfMaxNamesLength) + 2)
 

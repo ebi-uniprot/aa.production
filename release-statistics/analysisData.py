@@ -10,7 +10,8 @@ class DiffReport:
             for sec2 in report2.sections:
                 if sec1.name == sec2.name:
                     self.diffSec.append((sec1.name, sec1.headers, DiffSection(sec1.data, sec2.data)))
-
+                if sec1.is_footer == True or sec2.is_footer == True:
+                    break
 class DiffSection:
     def __init__(self, d1, d2):
         self.diffSec = []

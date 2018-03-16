@@ -36,10 +36,6 @@ class Section:
         x = line.split()
         data_start = 0
 
-        # if line.startswith("Global"):
-        #     print(line)
-        #     pass
-        # else:
         # treat the special case (those ends with "entries" in the file), mark
         # it in such a way that data (aka number) starts after the name of system
         while not x[data_start].endswith(":") and not x[data_start].isdecimal():
@@ -61,13 +57,34 @@ class Section:
 class Footer:
     def __init__(self, name):
         self.name = name.strip().rstrip(':')
-        self.headers = []
+        self.headers = None
         self.data = []
         self.is_footer = True
 
     def append(self, line):
-        print(line)
+        x = line.split()
+        #numbers = []
+        #data_start = 0
 
+        # when the name is only 'Global', take the next line as section name
+        # percentages are formula
+
+        if self.name == "Global":
+            if self.headers == None:
+                self.headers = line
+
+            if x[1].isdecimal():
+                print("found number: ", x[1])
+                self.data.append((x[0], float(x[1])))
+            if x[0] == "TrEmbl":
+                lineName = " ".join(x[:2])
+                self.data.append((lineName, float(x[2])))
+
+        # else:
+        #     for i in x:
+        #         self.data.append(i)
+
+        #print("Global section data: ", self.data)
 
 # separate the file into sections whereas an empty line
 def parse_section(in_file):
