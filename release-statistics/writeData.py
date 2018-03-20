@@ -40,8 +40,10 @@ class Worksheet:
                 self.write_numbers(1, numbers, self.format['Num'])
                 self.row += 1
         else:
-            self.worksheet.merge_range('A100:C100', s.headers, self.format['Header'])
-            self.row += 2
+            self.worksheet.merge_range(self.row, 0, self.row, 6, s.name, self.format['Header'])
+            self.row += 1
+            self.worksheet.merge_range(self.row, 0, self.row, 2, s.headers, self.format['Header'])
+            self.row += 1
             for (name, number) in s.data:
                 self.worksheet.write(self.row, 0, name, self.format['Num'])
                 self.worksheet.write_number(self.row, 1, number, self.format['Num'])

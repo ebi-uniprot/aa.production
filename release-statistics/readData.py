@@ -60,31 +60,41 @@ class Footer:
         self.headers = None
         self.data = []
         self.is_footer = True
+        self.tremblEntries = None
 
     def append(self, line):
         x = line.split()
-        #numbers = []
-        #data_start = 0
+        data_start = 0
 
         # when the name is only 'Global', take the next line as section name
         # percentages are formula
 
         if self.name == "Global":
             if self.headers == None:
-                self.headers = line
+                self.headers = line.strip().rstrip(':')
 
             if x[1].isdecimal():
-                print("found number: ", x[1])
                 self.data.append((x[0], float(x[1])))
+
             if x[0] == "TrEmbl":
-                lineName = " ".join(x[:2])
-                self.data.append((lineName, float(x[2])))
+                self.tremblEntries = float(x[2])
+                lineName = " ".join(x[:2]).strip().rstrip(":")
+                self.data.append((lineName, self.tremblEntries))
 
-        # else:
-        #     for i in x:
-        #         self.data.append(i)
+        else:
+            while not x[data_start].endswith(":") and not x[data_start].isdecimal():
+                data_start += 1
 
-        #print("Global section data: ", self.data)
+            number = x[data_start + 1].rstrip(",")
+            if number.isdecimal():
+                lineName = " ".join(x[:(data_start + 1)]).strip().rstrip(":")
+                self.data.append((lineName, float(number)))
+            # for i in x[data_start:]:
+            #     if i.isdecimal():
+            #         i.rstrip(",")
+            #         lineName = " ".join(x[:(data_start + 1)]).strip().rstrip(":")
+            #         self.data.append((lineName, float(i)))
+
 
 # separate the file into sections whereas an empty line
 def parse_section(in_file):
