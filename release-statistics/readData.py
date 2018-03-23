@@ -89,12 +89,16 @@ class Footer:
             if number.isdecimal():
                 lineName = " ".join(x[:(data_start + 1)]).strip().rstrip(":")
                 self.data.append((lineName, float(number)))
-            # for i in x[data_start:]:
-            #     if i.isdecimal():
-            #         i.rstrip(",")
-            #         lineName = " ".join(x[:(data_start + 1)]).strip().rstrip(":")
-            #         self.data.append((lineName, float(i)))
 
+            for i, v in enumerate(x):
+                if v == "TrEmbl":
+                    tremblStart = i
+                    v2 = x[tremblStart + 1]
+                    lineNameList = [v, v2]
+                    lineName = " ".join(lineNameList).strip().rstrip(":")
+                    if x[tremblStart + 2].isdecimal():
+                        self.tremblEntries = float(x[tremblStart + 2])
+                        self.data.append((lineName, self.tremblEntries))
 
 # separate the file into sections whereas an empty line
 def parse_section(in_file):

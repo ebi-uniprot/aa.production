@@ -8,7 +8,7 @@ except ImportError:
     print('\nThere was no xlswriter module installed. You can install it with:\npip install xlsxwriter')
     sys.exit(1)
 
-# Worksheet class for writing individual reports and differetial report
+# Worksheet class for writing individual reports and deviation report
 class Worksheet:
     def __init__(self, workbook, formatting, name):
         self.worksheet = workbook.add_worksheet(name)
@@ -47,6 +47,8 @@ class Worksheet:
             for (name, number) in s.data:
                 self.worksheet.write(self.row, 0, name, self.format['Num'])
                 self.worksheet.write_number(self.row, 1, number, self.format['Num'])
+                self.worksheet.write_formula('C99', '{=B99/B100}', self.format['Percent'])
+                self.worksheet.write_array_formula('C104:C108', '{=(B104:B108)/$B109}', self.format['Percent'])
                 self.row += 1
 
         self.row += 1
@@ -143,14 +145,15 @@ class Worksheet:
                                                      'value':     0.10,
                                                      'format':    self.format['Diff_increase_big']})
         # writing legend
-        self.worksheet.write(3, 14, 'Legend', self.format['Header'])
-        self.worksheet.write(4, 14, 'cutoff values (change to alter colouring)', self.format['Header'])
-        self.worksheet.write(5, 14, 'decrease:  0%', self.format['Diff_decrease'])
-        self.worksheet.write(6, 14, 'increase:  5%', self.format['Diff_increase_small'])
-        self.worksheet.write(7, 14, 'big increase:  10%', self.format['Diff_increase_big'])
+        legend = 'cutoff values (change to alter colouring)'
+        self.worksheet.set_column(15, 16, len(legend))
+        self.worksheet.merge_range('O4:P4', 'Legend', self.format['Header'])
+        self.worksheet.merge_range('O5:P5', legend, self.format['Header'])
+        self.worksheet.merge_range('O6:P6', 'decrease:  0%', self.format['Diff_decrease'])
+        self.worksheet.merge_range('O7:P7', 'increase:  5%', self.format['Diff_increase_small'])
+        self.worksheet.merge_range('O8:P8', 'big increase:  10%', self.format['Diff_increase_big'])
 
     def set_column_width(self, r):
-        listOfNamesLength = []
         listOfMaxNamesLength = []
 
         for s in r.sections:
@@ -163,6 +166,8 @@ class Worksheet:
                 listOfMaxNamesLength.append(maxLength)
         # add another 2 so that the length of column cover the whole text length
         self.worksheet.set_column(0, 0, max(listOfMaxNamesLength) + 2)
+        # set the following columns to a width of 10 (set to column 12 for the deviation report)
+        self.worksheet.set_column(1, 12, 10)
 
 # Writer class to open a workbook and write in the worksheets.
 class Writer:
@@ -192,6 +197,8 @@ class Writer:
         worksheet = Worksheet(self.workbook, self.format,
                               "compare-{}".format(xUtil.generate_deviations_sheet_name(r1.name, r2.name)))
         worksheet.freeze_panes(1, 1)
+        # set column width with r1 as only one set of lineNames to be compared
+        worksheet.set_column_width(r1)
         diffR = DiffReport(r1, r2)
 
         for diffSec in diffR.diffSec:
