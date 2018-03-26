@@ -47,8 +47,11 @@ class Worksheet:
             for (name, number) in s.data:
                 self.worksheet.write(self.row, 0, name, self.format['Num'])
                 self.worksheet.write_number(self.row, 1, number, self.format['Num'])
-                self.worksheet.write_formula('C99', '{=B99/B100}', self.format['Percent'])
-                self.worksheet.write_array_formula('C104:C108', '{=(B104:B108)/$B109}', self.format['Percent'])
+                print(name, self.row)
+                self.worksheet.write_formula('C99', '=B99/B100', self.format['Percent'])
+                for r in range(103, 109):
+                    formulaDetailed = '=B{}/B109'.format(r + 1)
+                    self.worksheet.write_formula(r, 2, formulaDetailed, self.format['Percent'])
                 self.row += 1
 
         self.row += 1
