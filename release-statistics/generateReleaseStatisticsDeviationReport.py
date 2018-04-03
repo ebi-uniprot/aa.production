@@ -40,7 +40,7 @@ args = parser.parse_args()
 report_prev = Report(args.prev_stat)
 report_cur = Report(args.cur_stat)
 
-w = Writer(args.outputFile)
+w = Writer(args.output_file)
 # write deviation report to the 1st worksheet
 w.writeDiffReport(report_cur, report_prev)
 w.writeReport(report_cur)
