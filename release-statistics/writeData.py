@@ -42,16 +42,18 @@ class Worksheet:
         else:
             self.worksheet.merge_range(self.row, 0, self.row, 6, s.name, self.format['Header'])
             self.row += 1
-            self.worksheet.merge_range(self.row, 0, self.row, 2, s.headers, self.format['Header'])
+            # if len(s.headers) != 0:
+            #     globalHeader = s.headers[0]
+            #     self.worksheet.merge_range(self.row, 0, self.row, 2, globalHeader, self.format['Header'])
+            self.worksheet.merge_range(self.row, 0, self.row, 2, s.longHeader, self.format['Header'])
             self.row += 1
             for (name, number) in s.data:
                 self.worksheet.write(self.row, 0, name, self.format['Num'])
-                self.worksheet.write_number(self.row, 1, number, self.format['Num'])
-                print(name, self.row)
-                self.worksheet.write_formula('C99', '=B99/B100', self.format['Percent'])
+                self.write_numbers(1, number, self.format['Num'])
+                self.worksheet.write_formula('D99', '=C99/C100', self.format['Percent'])
                 for r in range(103, 109):
-                    formulaDetailed = '=B{}/B109'.format(r + 1)
-                    self.worksheet.write_formula(r, 2, formulaDetailed, self.format['Percent'])
+                    formulaDetailed = '=C{}/C109'.format(r + 1)
+                    self.worksheet.write_formula(r, 3, formulaDetailed, self.format['Percent'])
                 self.row += 1
 
         self.row += 1
@@ -62,6 +64,8 @@ class Worksheet:
         for c in range(0, len(h)):
             if len(h) == 1:
                 self.worksheet.write(self.row, col + 1, h[c], f)
+            # elif h[0] == "entries":
+            #     self.worksheet.write(self.row, col + 1, h[c], f)
             else:
                 self.worksheet.write(self.row, col + c, h[c], f)
                 for i in (0, (3 - len(h) + 1)):
@@ -79,10 +83,19 @@ class Worksheet:
                     self.worksheet.write(self.row, col + i, None)
         return (col + 3)
 
+    def write_footer_headers(self, col, fh, f):
+        while True:
+            for h in range(0, len(fh)):
+                self.worksheet.write(self.row, col + 1, fh[h], f)
+                col += 1
+            col += 1
+            if col > 12:
+                break
+
     def appendDiff(self, diffSec, r1, r2):
         # merge the cells for main header
         self.worksheet.merge_range('B1:D1', r1.name, self.format['Header'])
-        self.worksheet.merge_range('E1:G1', r1.name, self.format['Header'])
+        self.worksheet.merge_range('E1:G1', r2.name, self.format['Header'])
         self.worksheet.merge_range('H1:J1',
                                 "increase {} --> {}, abs".format(r1.name, r2.name),
                                    self.format['Header'])
@@ -90,22 +103,58 @@ class Worksheet:
                                 "increase {} --> {}, %".format(r1.name, r2.name),
                                    self.format['Header'])
         self.row += 1
-        (name, headers, diffData) = diffSec
-        self.print_headers_in_deviation_report(name, headers)
-        self.row += 1
+        if len(diffSec) != 4:
+            (name, headers, diffData) = diffSec
+            self.print_headers_in_deviation_report(name, headers)
+            self.row += 1
 
-        for line in diffData.diffSec:
-            col = 0
-            # when there is a difference in name, only write one set of data
-            if len(line) == 2:
-                (lineName, nb) = line
-                self.worksheet.write(self.row, col, lineName, self.format['Num'])
-                col += 1
-                col = self.write_numbers(col, nb, self.format['Num'])
+            for line in diffData.diffSec:
+                col = 0
+                # when there is a difference in name, only write one set of data
+                if len(line) == 2:
+                    (lineName, nb) = line
+                    self.worksheet.write(self.row, col, lineName, self.format['Num'])
+                    col += 1
+                    col = self.write_numbers(col, nb, self.format['Num'])
 
-            # write two sets of data with the same name
-            elif len(line) == 3:
+                # write two sets of data with the same name
+                elif len(line) == 3:
+                    (lineName, nb1, nb2) = line
+                    self.worksheet.write(self.row, col, lineName, self.format['Num'])
+                    col += 1
+                    col = self.write_numbers(col, nb1, self.format['Num'])
+                    col = self.write_numbers(col, nb2, self.format['Num'])
+                    v = []
+                    p = []
+                    for i in range(0, len(nb1)):
+                        diffVal = int(nb1[i]) - int(nb2[i])
+                        v.append(diffVal)
+                        if int(nb2[i]) == 0:
+                            p.append(0.0)
+                        else:
+                            #diffPer = "{:.2%}".format(diffVal / int(nb2[i]))
+                            diffPer = diffVal / int(nb2[i])
+                            p.append(diffPer)
+
+                    col = self.write_numbers(col, v, self.format['Num'])
+                    col = self.write_numbers(col, p, self.format['Percent'])
+
+                else:
+                    print("error")
+
+                self.row += 1
+            #self.row += 1
+
+        else:
+            (name, longHeader, headers, diffData) = diffSec
+            self.worksheet.merge_range(self.row, 0, self.row, 12, name, self.format['Header'])
+            self.row += 1
+            self.worksheet.write(self.row, 0, longHeader, self.format['Header'])
+            self.write_footer_headers(1, headers, self.format['Header'])
+            self.row += 1
+            for line in diffData.diffSec:
                 (lineName, nb1, nb2) = line
+                col = 0
                 self.worksheet.write(self.row, col, lineName, self.format['Num'])
                 col += 1
                 col = self.write_numbers(col, nb1, self.format['Num'])
@@ -118,21 +167,17 @@ class Worksheet:
                     if int(nb2[i]) == 0:
                         p.append(0.0)
                     else:
-                        #diffPer = "{:.2%}".format(diffVal / int(nb2[i]))
                         diffPer = diffVal / int(nb2[i])
                         p.append(diffPer)
 
                 col = self.write_numbers(col, v, self.format['Num'])
                 col = self.write_numbers(col, p, self.format['Percent'])
 
-            else:
-                print("error")
+                self.row += 1
 
-            self.row += 1
-        self.row += 1
 
         # conditional formatting the percentages columns
-        conRange = 'K3:M105'
+        conRange = 'K3:M119'
         self.worksheet.conditional_format(conRange, {'type':     'cell',
                                                      'criteria': '<',
                                                      'value':     0,

@@ -57,10 +57,11 @@ class Section:
 class Footer:
     def __init__(self, name):
         self.name = name.strip().rstrip(':')
-        self.headers = None
+        self.longHeader = None
+        self.headers = []
         self.data = []
         self.is_footer = True
-        self.tremblEntries = None
+        self.tremblEntries = []
 
     def append(self, line):
         x = line.split()
@@ -68,16 +69,17 @@ class Footer:
 
         # when the name is only 'Global', take the next line as section name
         # percentages are formula
-
         if self.name == "Global":
-            if self.headers == None:
-                self.headers = line.strip().rstrip(':')
+            if self.longHeader == None:
+                self.longHeader = line.strip().rstrip(':')
 
+            numbers = []
             if x[1].isdecimal():
-                self.data.append((x[0], float(x[1])))
+                numbers.append(float(x[1]))
+                self.data.append((x[0], numbers))
 
             if x[0] == "TrEmbl":
-                self.tremblEntries = float(x[2])
+                self.tremblEntries.append(float(x[2]))
                 lineName = " ".join(x[:2]).strip().rstrip(":")
                 self.data.append((lineName, self.tremblEntries))
 
@@ -86,9 +88,11 @@ class Footer:
                 data_start += 1
 
             number = x[data_start + 1].rstrip(",")
+            numbers = []
             if number.isdecimal():
                 lineName = " ".join(x[:(data_start + 1)]).strip().rstrip(":")
-                self.data.append((lineName, float(number)))
+                numbers.append(float(number))
+                self.data.append((lineName, numbers))
 
             for i, v in enumerate(x):
                 if v == "TrEmbl":
@@ -97,7 +101,7 @@ class Footer:
                     lineNameList = [v, v2]
                     lineName = " ".join(lineNameList).strip().rstrip(":")
                     if x[tremblStart + 2].isdecimal():
-                        self.tremblEntries = float(x[tremblStart + 2])
+                        self.tremblEntries.append(float(x[tremblStart + 2]))
                         self.data.append((lineName, self.tremblEntries))
 
 # separate the file into sections whereas an empty line

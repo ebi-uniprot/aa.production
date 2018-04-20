@@ -8,10 +8,13 @@ class DiffReport:
 
         for sec1 in report1.sections:
             for sec2 in report2.sections:
-                if sec1.name == sec2.name:
+                if sec1.name == sec2.name and sec1.is_footer == False and sec2.is_footer == False:
                     self.diffSec.append((sec1.name, sec1.headers, DiffSection(sec1.data, sec2.data)))
-                if sec1.is_footer == True or sec2.is_footer == True:
-                    break
+                if sec1.name == sec2.name and sec1.is_footer == True and sec2.is_footer == True:
+                    sec1.headers.append("entries")
+                    sec1.headers.append("% of Trembl")
+                    self.diffSec.append((sec1.name, sec1.longHeader, sec1.headers, DiffSection(sec1.data, sec2.data)))
+
 class DiffSection:
     def __init__(self, d1, d2):
         self.diffSec = []
