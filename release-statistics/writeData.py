@@ -8,6 +8,9 @@ except ImportError:
     print('\nThere was no xlswriter module installed. You can install it with:\npip install xlsxwriter')
     sys.exit(1)
 
+from xlsxwriter.utility import xl_rowcol_to_cell, xl_cell_to_rowcol
+
+
 # Worksheet class for writing individual reports and deviation report
 class Worksheet:
     def __init__(self, workbook, formatting, name):
@@ -18,15 +21,65 @@ class Worksheet:
     def freeze_panes(self, r, c):
         self.worksheet.freeze_panes(r, c)
 
+    def write_headers(self, col, h, f):
+        # according to the length of the headers list, write the headers in the according column
+        # the maximum length of the header list is 3 as in (predictions, entries, rules)
+        if len(h) == 1:
+            self.write_headers_(col + 1, h, f)
+        else:
+            self.write_data_padding(3, col, h, f)
+        return (col + 3)
+
+    def write_headers_(self, col, h, f):
+        for c in range(0, len(h)):
+            self.worksheet.write(self.row, col + c, h[c], f)
+        return (col + len(h))
+
+    def write_data_padding(self, padding, col, d, f):
+        after_writing = self.write_headers_(col, d, f)
+        if len(d) < padding:
+            for i in range(0, padding - len(d)):
+                self.worksheet.write(self.row, after_writing + i, None)
+            return col + padding
+        else:
+            return after_writing
+
+    def write_numbers(self, col, n, f):
+        if len(n) == 1:
+            self.write_numbers_(col + 1, n, f)
+        else:
+            self.write_data_padding(3, col, n, f)
+        return (col + 3)
+
+    def write_numbers_(self, col, n, f):
+        for c in range(0, len(n)):
+            self.worksheet.write_number(self.row, col + c, n[c], f)
+        return (col + len(n))
+
+    def write_footer_headers(self, col, fh, f):
+        while True:
+            for h in range(0, len(fh)):
+                self.worksheet.write(self.row, col + 1, fh[h], f)
+                col += 1
+            col += 1
+            if col > 12:
+                break
+
+    def write_1num_cn(self, row, col, n, f):
+        self.worksheet.write_number(row, col, n, f)
+        return xl_rowcol_to_cell(row, col)
+
     def print_headers_in_deviation_report(self, name, headers):
         # write headers
         self.worksheet.write(self.row, 0, name, self.format['Header'])
-
         col = 1
         while True:
             col = self.write_headers(col, headers, self.format['Header'])
             if col > 12:
                 break
+
+    def write_global_formula(self, s, r, f):
+        pass
 
     def append(self, s):
         self.worksheet.write(self.row, 0, s.name, self.format['Header'])
@@ -42,55 +95,24 @@ class Worksheet:
         else:
             self.worksheet.merge_range(self.row, 0, self.row, 6, s.name, self.format['Header'])
             self.row += 1
-            # if len(s.headers) != 0:
-            #     globalHeader = s.headers[0]
-            #     self.worksheet.merge_range(self.row, 0, self.row, 2, globalHeader, self.format['Header'])
             self.worksheet.merge_range(self.row, 0, self.row, 2, s.longHeader, self.format['Header'])
             self.row += 1
+
+            numberCells = []
             for (name, number) in s.data:
                 self.worksheet.write(self.row, 0, name, self.format['Num'])
-                self.write_numbers(1, number, self.format['Num'])
-                self.worksheet.write_formula('D99', '=C99/C100', self.format['Percent'])
-                for r in range(103, 109):
-                    formulaDetailed = '=C{}/C109'.format(r + 1)
-                    self.worksheet.write_formula(r, 3, formulaDetailed, self.format['Percent'])
+                numberCell = self.write_1num_cn(self.row, 2, number[0], self.format['Num'])
+                numberCells.append(numberCell)
                 self.row += 1
 
+            tremblCell = numberCells[-1]
+            for c in numberCells:
+                (row, col) = xl_cell_to_rowcol(c)
+                writingCell = xl_rowcol_to_cell(row, col + 1)
+                formulaGlobal = '={}/{}'.format(c, tremblCell)
+                self.worksheet.write_formula(writingCell, formulaGlobal, self.format['Percent'])
+
         self.row += 1
-
-    def write_headers(self, col, h, f):
-        # according to the length of the headers list, write the headers in the according column
-        # the maximum length of the header list is 3 as in (predictions, entries, rules)
-        for c in range(0, len(h)):
-            if len(h) == 1:
-                self.worksheet.write(self.row, col + 1, h[c], f)
-            # elif h[0] == "entries":
-            #     self.worksheet.write(self.row, col + 1, h[c], f)
-            else:
-                self.worksheet.write(self.row, col + c, h[c], f)
-                for i in (0, (3 - len(h) + 1)):
-                    self.worksheet.write(self.row, col + i, None)
-        return (col + 3)
-
-    def write_numbers(self, col, n, f):
-        for c in range(0, len(n)):
-            if len(n) == 1:
-                # using worksheet.write_number() function which only write int or floats.
-                self.worksheet.write_number(self.row, col + 1, n[c], f)
-            else:
-                self.worksheet.write_number(self.row, col + c, n[c], f)
-                for i in (0, (3 - len(n) + 1)):
-                    self.worksheet.write(self.row, col + i, None)
-        return (col + 3)
-
-    def write_footer_headers(self, col, fh, f):
-        while True:
-            for h in range(0, len(fh)):
-                self.worksheet.write(self.row, col + 1, fh[h], f)
-                col += 1
-            col += 1
-            if col > 12:
-                break
 
     def appendDiff(self, diffSec, r1, r2):
         # merge the cells for main header
@@ -113,7 +135,7 @@ class Worksheet:
                 # when there is a difference in name, only write one set of data
                 if len(line) == 2:
                     (lineName, nb) = line
-                    self.worksheet.write(self.row, col, lineName, self.format['Num'])
+                    self.worksheet.write(self.row, col, lineName, self.format['Header'])
                     col += 1
                     col = self.write_numbers(col, nb, self.format['Num'])
 
@@ -143,7 +165,6 @@ class Worksheet:
                     print("error")
 
                 self.row += 1
-            #self.row += 1
 
         else:
             (name, longHeader, headers, diffData) = diffSec
