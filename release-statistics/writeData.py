@@ -83,8 +83,8 @@ class Worksheet:
 
     def append(self, s):
         self.worksheet.write(self.row, 0, s.name, self.format['Header'])
-        if s.is_footer == False:
-        # from the next row, write the data
+        if not s.is_footer:
+            # from the next row, write the data
             self.write_headers(1, s.headers, self.format['Header'])
             self.row += 1
 
@@ -105,14 +105,20 @@ class Worksheet:
                 numberCells.append(numberCell)
                 self.row += 1
 
-            tremblCell = numberCells[-1]
+            trembl_entries_cell = self.fix_row(numberCells[-1])
+
             for c in numberCells:
                 (row, col) = xl_cell_to_rowcol(c)
                 writingCell = xl_rowcol_to_cell(row, col + 1)
-                formulaGlobal = '={}/{}'.format(c, tremblCell)
+                formulaGlobal = '={}/{}'.format(c, trembl_entries_cell)
                 self.worksheet.write_formula(writingCell, formulaGlobal, self.format['Percent'])
 
         self.row += 1
+
+    def fix_row(self, cell_name):
+        # "fixes" row number with a dollar sign, for formula references
+        (row, col) = xl_cell_to_rowcol(cell_name)
+        return xl_rowcol_to_cell(row, col, row_abs=True)
 
     def appendDiff(self, diffSec, r1, r2):
         # merge the cells for main header
