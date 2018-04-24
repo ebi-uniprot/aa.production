@@ -72,12 +72,15 @@ class Worksheet:
     def write_numList_cn(self, row, col, nl, f):
         numberCells = []
         if len(nl) == 1:
-            oneCell = self.write_1num_cn(col + 1, nl[0], f)
+            oneCell = self.write_1num_cn(row, col + 1, nl[0], f)
             numberCells.append(oneCell)
         else:
             for n in nl:
-                oneCell = self.write_1num_cn(col, n, f)
+                oneCell = self.write_1num_cn(row, col, n, f)
+                col += 1
                 numberCells.append(oneCell)
+            if len(numberCells) < 3:
+                self.worksheet.write(row, col + 1, None)
         return numberCells
 
     def write_num_padding(self, padding, col, d):
@@ -99,12 +102,19 @@ class Worksheet:
         writingCell = xl_rowcol_to_cell(row, col + 1)
         formulaGlobal = '={}/{}'.format(c, tremblCell)
         self.worksheet.write_formula(writingCell, formulaGlobal, self.format['Percent'])
+        return writingCell
 
-    def write_deviation_formula(self, col, c1, c2):
+    def write_deviation_formula_abs(self, col, c1, c2, f):
         (row, col) = xl_cell_to_rowcol(c2)
         writingCell = xl_rowcol_to_cell(row, col + 3)
         formulaValDiff = '={}-{}'.format(c1, c2)
-        self.worksheet.write_formula(writingCell, formulaValDiff, self.format['Num'])
+        self.worksheet.write_formula(writingCell, formulaValDiff, f)
+
+    def write_deviation_formula_per(self, col, c1, c2):
+        (row, col) = xl_cell_to_rowcol(c2)
+        writingCell = xl_rowcol_to_cell(row, col + 6)
+        formulaValDiff = '=({}-{})/{}'.format(c1, c2, c2)
+        self.worksheet.write_formula(writingCell, formulaValDiff, self.format['Percent'])
 
     def append(self, s):
         self.worksheet.write(self.row, 0, s.name, self.format['Header'])
@@ -136,10 +146,10 @@ class Worksheet:
 
         self.row += 1
 
-        def fix_row(self, cell_name):
-            # "fixes" row number with a dollar sign, for formula references
-            (row, col) = xl_cell_to_rowcol(cell_name)
-            return xl_rowcol_to_cell(row, col, row_abs=True)
+    def fix_row(self, cell_name):
+        # "fixes" row number with a dollar sign, for formula references
+        (row, col) = xl_cell_to_rowcol(cell_name)
+        return xl_rowcol_to_cell(row, col, row_abs=True)
 
     def appendDiff(self, diffSec, r1, r2):
         # merge the cells for main header
@@ -172,25 +182,17 @@ class Worksheet:
                     self.worksheet.write(self.row, col, lineName, self.format['Num'])
                     numberCells1 = []
                     numberCells2 = []
-                    if len(nb1) == 1:
-                        col += 2
-                    else:
-                        col += 1
-                    for v1 in nb1:
-                        oneCell1 = self.write_1num_cn(self.row, col, v1, self.format['Num'])
-                        numberCells1.append(oneCell1)
-                        col += 1
-                    self.write_num_padding(3, col, nb1)
-
-                    for v2 in nb2:
-                        oneCell2 = self.write_1num_cn(self.row, col, v2, self.format['Num'])
-                        numberCells2.append(oneCell2)
-                        col += 1
-                        #print("second set of cells: ", oneCell2)
-                    self.write_num_padding(3, col, nb2)
-
+                    col += 1
+                    numberCells1 = self.write_numList_cn(self.row, col, nb1, self.format['Num'])
+                    col += 3
+                    numberCells2 = self.write_numList_cn(self.row, col, nb2, self.format['Num'])
+                    col += 3
                     for i in range(0, len(numberCells1)):
-                        self.write_deviation_formula(col, numberCells1[i], numberCells2[i])
+                        self.write_deviation_formula_abs(col, numberCells1[i], numberCells2[i], self.format['Num'])
+                        if numberCells2[i] != 0:
+                            self.write_deviation_formula_per(col, numberCells1[i], numberCells2[i])
+                        else:
+                            self.worksheet.write(self.row, col, 0, self.format['Num'])
 
                 else:
                     print("error")
@@ -220,30 +222,29 @@ class Worksheet:
                 col += 3
                 self.row += 1
 
-            tremblCell1 = numberCells1[-1]
+            trembl_entries_cell_1 = self.fix_row(numberCells1[-1])
+            formula_cell_1 = []
+            formula_cell_2 = []
             for c1 in numberCells1:
-                self.write_global_formula(c1, tremblCell1)
-
-            tremblCell2 = numberCells2[-1]
+                cell1 = self.write_global_formula(c1, trembl_entries_cell_1)
+                formula_cell_1.append(cell1)
+            trembl_entries_cell_2 = self.fix_row(numberCells2[-1])
             for c2 in numberCells2:
-                self.write_global_formula(c2, tremblCell2)
+                cell2 = self.write_global_formula(c2, trembl_entries_cell_2)
+                formula_cell_2.append(cell2)
 
-                # v = []
-                # p = []
-                # for i in range(0, len(nb1)):
-                #     diffVal = int(nb1[i]) - int(nb2[i])
-                #     v.append(diffVal)
-                #     if int(nb2[i]) == 0:
-                #         p.append(0.0)
-                #     else:
-                #         diffPer = diffVal / int(nb2[i])
-                #         p.append(diffPer)
-                #
-                # col = self.write_numbers(col, v, self.format['Num'])
-                # col = self.write_numbers(col, p, self.format['Percent'])
+            for i in range(0, len(numberCells1)):
+                self.write_deviation_formula_abs(col, numberCells1[i], numberCells2[i], self.format['Num'])
+                self.write_deviation_formula_abs(col + 1, formula_cell_1[i], formula_cell_2[i], self.format['Percent'])
+                if numberCells2[i] != 0:
+                    self.write_deviation_formula_per(col, numberCells1[i], numberCells2[i])
+                    self.write_deviation_formula_per(col + 1, formula_cell_1[i], formula_cell_2[i])
+                else:
+                    self.worksheet.write(self.row, col, 0, self.format['Num'])
+
 
         # conditional formatting the percentages columns
-        conRange = 'K3:M119'
+        conRange = 'K3:M113'
         self.worksheet.conditional_format(conRange, {'type':     'cell',
                                                      'criteria': '<',
                                                      'value':     0,
