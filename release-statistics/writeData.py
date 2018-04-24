@@ -107,13 +107,13 @@ class Worksheet:
     def write_deviation_formula_abs(self, col, c1, c2, f):
         (row, col) = xl_cell_to_rowcol(c2)
         writingCell = xl_rowcol_to_cell(row, col + 3)
-        formulaValDiff = '={}-{}'.format(c1, c2)
+        formulaValDiff = '=IF(AND({}=0, {}=0), 0, {}-{})'.format(c1, c2, c1, c2)
         self.worksheet.write_formula(writingCell, formulaValDiff, f)
 
     def write_deviation_formula_per(self, col, c1, c2):
         (row, col) = xl_cell_to_rowcol(c2)
         writingCell = xl_rowcol_to_cell(row, col + 6)
-        formulaValDiff = '=({}-{})/{}'.format(c1, c2, c2)
+        formulaValDiff = '=IF({}=0, 0, ({}-{})/{})'.format(c2, c1, c2, c2)
         self.worksheet.write_formula(writingCell, formulaValDiff, self.format['Percent'])
 
     def append(self, s):
@@ -242,6 +242,15 @@ class Worksheet:
                 else:
                     self.worksheet.write(self.row, col, 0, self.format['Num'])
 
+        # writing legend
+        legend = 'Cutoff values (change to alter colouring)'
+        self.worksheet.set_column(15, 16, len(legend))
+        self.worksheet.merge_range('O4:P4', 'Legend', self.format['Header'])
+        self.worksheet.merge_range('O5:P5', legend, self.format['Header'])
+        self.worksheet.write('O6', 'decrease: ', self.format['Diff_decrease'])
+        zero_value = self.worksheet.write('P6', 0, self.format['Diff_decrease'])
+        self.worksheet.merge_range('O7:P7', 'increase:  5%', self.format['Diff_increase_small'])
+        self.worksheet.merge_range('O8:P8', 'big increase:  10%', self.format['Diff_increase_big'])
 
         # conditional formatting the percentages columns
         conRange = 'K3:M113'
@@ -259,14 +268,6 @@ class Worksheet:
                                                      'criteria': '>',
                                                      'value':     0.10,
                                                      'format':    self.format['Diff_increase_big']})
-        # writing legend
-        legend = 'cutoff values (change to alter colouring)'
-        self.worksheet.set_column(15, 16, len(legend))
-        self.worksheet.merge_range('O4:P4', 'Legend', self.format['Header'])
-        self.worksheet.merge_range('O5:P5', legend, self.format['Header'])
-        self.worksheet.merge_range('O6:P6', 'decrease:  0%', self.format['Diff_decrease'])
-        self.worksheet.merge_range('O7:P7', 'increase:  5%', self.format['Diff_increase_small'])
-        self.worksheet.merge_range('O8:P8', 'big increase:  10%', self.format['Diff_increase_big'])
 
     def set_column_width(self, r):
         listOfMaxNamesLength = []
@@ -291,9 +292,9 @@ class Writer:
         self.format = {}
         self.format['Header'] = self.workbook.add_format({'bold': True, 'underline': True, 'align': 'center', 'center_across': True,
                                                           'font_name': 'Arial', 'font_size': 10})
-        self.format['Diff_decrease'] = self.workbook.add_format({'bg_color': 'orange', 'font_name': 'Arial', 'font_size': 10})
-        self.format['Diff_increase_small'] = self.workbook.add_format({'bg_color': 'green', 'font_name': 'Arial', 'font_size': 10})
-        self.format['Diff_increase_big'] = self.workbook.add_format({'bg_color': 'blue', 'font_name': 'Arial', 'font_size': 10})
+        self.format['Diff_decrease'] = self.workbook.add_format({'bg_color': '#ff6633', 'font_name': 'Arial', 'font_size': 10, 'num_format': '0.00%'})
+        self.format['Diff_increase_small'] = self.workbook.add_format({'bg_color': '#00ff00', 'font_name': 'Arial', 'font_size': 10})
+        self.format['Diff_increase_big'] = self.workbook.add_format({'bg_color': '#008080', 'font_name': 'Arial', 'font_size': 10})
         self.format['Percent'] = self.workbook.add_format({'num_format': '0.00%', 'font_name': 'Arial', 'font_size': 10})
         self.format['Num'] = self.workbook.add_format({'num_format': '#,###', 'font_name': 'Arial', 'font_size': 10})
 
