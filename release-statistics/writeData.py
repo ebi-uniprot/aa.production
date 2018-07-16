@@ -1,6 +1,6 @@
+import sys
 from xls_util import XlsUtil
-from readData import Report, Section
-from analysisData import DiffReport, DiffSection
+from analysisData import DiffReport
 
 try:
     import xlsxwriter
