@@ -1,5 +1,5 @@
 #Intelli J idea stuff:
-/.idea
+**/.idea/
 .DS_Store
 *.swp
 *.xlsx
