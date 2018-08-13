@@ -1,4 +1,6 @@
 import sys
+
+from border_format_appender import BorderFormatAppender
 from xls_util import XlsUtil
 from analysisData import DiffReport
 
@@ -17,26 +19,30 @@ class Worksheet:
         self.worksheet = workbook.add_worksheet(name)
         self.format = formatting
         self.row = 0
+        self.borders_appender = BorderFormatAppender(workbook)
 
     def freeze_panes(self, r, c):
         self.worksheet.freeze_panes(r, c)
 
-    def write_headers(self, col, h, f):
+    def write_headers(self, col, h, f, format_adapter=None):
         # according to the length of the headers list, write the headers in the according column
         # the maximum length of the header list is 3 as in (predictions, entries, rules)
         if len(h) == 1:
             self.write_headers_(col + 1, h, f)
         else:
-            self.write_data_padding(3, col, h, f)
+            self.write_data_padding(3, col, h, f, format_adapter)
         return (col + 3)
 
-    def write_headers_(self, col, h, f):
-        for c in range(0, len(h)):
-            self.worksheet.write(self.row, col + c, h[c], f)
-        return (col + len(h))
+    def write_headers_(self, col, h, f, format_adapter=None):
+        for h_idx, h_val in enumerate(h):
+            new_format = format_adapter.append_borders(f, is_left=(0 == h_idx), is_right=(2 == h_idx)) \
+                if format_adapter is not None \
+                else f
+            self.worksheet.write(self.row, col + h_idx, h_val, new_format)
+        return col + len(h)
 
-    def write_data_padding(self, padding, col, d, f):
-        after_writing = self.write_headers_(col, d, f)
+    def write_data_padding(self, padding, col, d, f, format_adapter=None):
+        after_writing = self.write_headers_(col, d, f, format_adapter)
         if len(d) < padding:
             for i in range(0, padding - len(d)):
                 self.worksheet.write(self.row, after_writing + i, None)
@@ -69,14 +75,18 @@ class Worksheet:
         self.worksheet.write_number(row, col, n, f)
         return xl_rowcol_to_cell(row, col)
 
-    def write_numList_cn(self, row, col, nl, f):
+    def write_numList_cn(self, row, col, nl, f, format_adapter=None):
         numberCells = []
         if len(nl) == 1:
             oneCell = self.write_1num_cn(row, col + 1, nl[0], f)
             numberCells.append(oneCell)
         else:
-            for n in nl:
-                oneCell = self.write_1num_cn(row, col, n, f)
+            for n_idx, n in enumerate(nl):
+                cell_format = f
+                if format_adapter is not None:
+                    cell_format = format_adapter.append_borders(cell_format, 0 == n_idx, 2 == n_idx)
+
+                oneCell = self.write_1num_cn(row, col, n, cell_format)
                 col += 1
                 numberCells.append(oneCell)
             if len(numberCells) < 3:
@@ -92,10 +102,10 @@ class Worksheet:
         # write headers
         self.worksheet.write(self.row, 0, name, self.format['Header'])
         col = 1
-        while True:
-            col = self.write_headers(col, headers, self.format['Header'])
-            if col > 12:
-                break
+        while col <= 12:
+            # odd number of columns appended on each iteration, therefore can discriminate based on odd/even
+            cur_border_appender = self.borders_appender if col % 2 == 0 else None
+            col = self.write_headers(col, headers, self.format['Header'], cur_border_appender)
 
     def write_global_formula(self, c, tremblCell):
         (row, col) = xl_cell_to_rowcol(c)
@@ -110,11 +120,17 @@ class Worksheet:
         formulaValDiff = '=IF(AND({}=0, {}=0), 0, {}-{})'.format(c1, c2, c1, c2)
         self.worksheet.write_formula(writingCell, formulaValDiff, f)
 
-    def write_deviation_formula_per(self, col, c1, c2):
+    def write_deviation_formula_per(self, col, c1, c2, format_adapter=None):
         (row, col) = xl_cell_to_rowcol(c2)
-        writingCell = xl_rowcol_to_cell(row, col + 6)
-        formulaValDiff = '=IF({}=0, 0, ({}-{})/{})'.format(c2, c1, c2, c2)
-        self.worksheet.write_formula(writingCell, formulaValDiff, self.format['Percent'])
+        writing_cell = xl_rowcol_to_cell(row, col + 6)
+        formula_val_diff = '=IF({}=0, 0, ({}-{})/{})'.format(c2, c1, c2, c2)
+
+        cell_format = self.format['Percent']
+        if format_adapter is not None:
+            cell_format = format_adapter(cell_format)
+        #     cell_format = format_adapter.append_borders(f, is_left=(0 == h_idx), is_right=(len(h) - 1 == h_idx)) \
+
+        self.worksheet.write_formula(writing_cell, formula_val_diff, cell_format)
 
     def append(self, s):
         self.worksheet.write(self.row, 0, s.name, self.format['Header'])
@@ -180,17 +196,20 @@ class Worksheet:
                 elif len(line) == 3:
                     (lineName, nb1, nb2) = line
                     self.worksheet.write(self.row, col, lineName, self.format['Num'])
-                    numberCells1 = []
-                    numberCells2 = []
                     col += 1
                     numberCells1 = self.write_numList_cn(self.row, col, nb1, self.format['Num'])
                     col += 3
-                    numberCells2 = self.write_numList_cn(self.row, col, nb2, self.format['Num'])
+                    numberCells2 = self.write_numList_cn(self.row, col, nb2, self.format['Num'], self.borders_appender)
                     col += 3
-                    for i in range(0, len(numberCells1)):
-                        self.write_deviation_formula_abs(col, numberCells1[i], numberCells2[i], self.format['Num'])
-                        if numberCells2[i] != 0:
-                            self.write_deviation_formula_per(col, numberCells1[i], numberCells2[i])
+                    for cell_idx, num_cell1 in enumerate(numberCells1):
+                        self.write_deviation_formula_abs(col, num_cell1, numberCells2[cell_idx], self.format['Num'])
+                        if numberCells2[cell_idx] != 0:
+                            format_adapter = None
+                            if 0 == cell_idx and len(numberCells1) > 1:
+                                format_adapter = self.borders_appender.append_border_left
+                            elif 2 == cell_idx:
+                                format_adapter = self.borders_appender.append_border_right
+                            self.write_deviation_formula_per(col, num_cell1, numberCells2[cell_idx], format_adapter)
                         else:
                             self.worksheet.write(self.row, col, 0, self.format['Num'])
 
@@ -233,12 +252,12 @@ class Worksheet:
                 cell2 = self.write_global_formula(c2, trembl_entries_cell_2)
                 formula_cell_2.append(cell2)
 
-            for i in range(0, len(numberCells1)):
-                self.write_deviation_formula_abs(col, numberCells1[i], numberCells2[i], self.format['Num'])
-                self.write_deviation_formula_abs(col + 1, formula_cell_1[i], formula_cell_2[i], self.format['Percent'])
-                if numberCells2[i] != 0:
-                    self.write_deviation_formula_per(col, numberCells1[i], numberCells2[i])
-                    self.write_deviation_formula_per(col + 1, formula_cell_1[i], formula_cell_2[i])
+            for cell_idx in range(0, len(numberCells1)):
+                self.write_deviation_formula_abs(col, numberCells1[cell_idx], numberCells2[cell_idx], self.format['Num'])
+                self.write_deviation_formula_abs(col + 1, formula_cell_1[cell_idx], formula_cell_2[cell_idx], self.format['Percent'])
+                if numberCells2[cell_idx] != 0:
+                    self.write_deviation_formula_per(col, numberCells1[cell_idx], numberCells2[cell_idx])
+                    self.write_deviation_formula_per(col + 1, formula_cell_1[cell_idx], formula_cell_2[cell_idx])
                 else:
                     self.worksheet.write(self.row, col, 0, self.format['Num'])
 
@@ -248,7 +267,7 @@ class Worksheet:
         self.worksheet.merge_range('O4:P4', 'Legend', self.format['Header'])
         self.worksheet.merge_range('O5:P5', legend, self.format['Header'])
         self.worksheet.write('O6', 'decrease: ', self.format['Diff_decrease'])
-        zero_value = self.worksheet.write('P6', 0, self.format['Diff_decrease'])
+        self.worksheet.write('P6', 0, self.format['Diff_decrease'])
         self.worksheet.merge_range('O7:P7', 'increase:  5%', self.format['Diff_increase_small'])
         self.worksheet.merge_range('O8:P8', 'big increase:  10%', self.format['Diff_increase_big'])
 
@@ -258,7 +277,6 @@ class Worksheet:
                                                      'criteria': '<',
                                                      'value':     0,
                                                      'format':    self.format['Diff_decrease']})
-
         self.worksheet.conditional_format(conRange, {'type':     'cell',
                                                      'criteria': 'between',
                                                      'minimum':   0.05,
@@ -284,6 +302,8 @@ class Worksheet:
         self.worksheet.set_column(0, 0, max(listOfMaxNamesLength) + 2)
         # set the following columns to a width of 10 (set to column 12 for the deviation report)
         self.worksheet.set_column(1, 12, 10)
+
+
 
 # Writer class to open a workbook and write in the worksheets.
 class Writer:
