@@ -8,19 +8,26 @@ class BorderFormatAppender:
     def __init__(self, workbook):
         self.workbook = workbook
 
+    def append_borders_vertical(self, cell_format):
+        return self.append_borders(cell_format, is_left=True, is_right=True)
+
     def append_border_left(self, cell_format):
         return self.append_borders(cell_format, is_left=True)
 
     def append_border_right(self, cell_format):
         return self.append_borders(cell_format, is_right=True)
 
-    def append_borders(self, cell_format, is_left=False, is_right=False):
+    def append_borders(self, cell_format, is_left=False, is_right=False, is_top=False, is_bottom=False):
         extra_props = {}
         # ['top', 'bottom', 'left', 'right']
         if is_left:
             extra_props['left'] = 1
         if is_right:
             extra_props['right'] = 1
+        if is_top:
+            extra_props['top'] = 1
+        if is_bottom:
+            extra_props['bottom'] = 1
 
         return self.add_to_format(cell_format, extra_props)
 
