@@ -12,6 +12,8 @@ except ImportError:
 
 from xlsxwriter.utility import xl_rowcol_to_cell, xl_cell_to_rowcol
 
+xUtil = XlsUtil()
+
 
 # Worksheet class for writing individual reports and deviation report
 class Worksheet:
@@ -84,7 +86,7 @@ class Worksheet:
             for n_idx, n in enumerate(nl):
                 cell_format = f
                 if format_adapter is not None:
-                    cell_format = format_adapter.append_borders(cell_format, 0 == n_idx, 2 == n_idx)
+                    cell_format = format_adapter.append_borders(cell_format, is_left=0 == n_idx, is_right=2 == n_idx)
 
                 oneCell = self.write_1num_cn(row, col, n, cell_format)
                 col += 1
@@ -117,13 +119,14 @@ class Worksheet:
     def write_deviation_formula_abs(self, col, c1, c2, f):
         (row, col) = xl_cell_to_rowcol(c2)
         writingCell = xl_rowcol_to_cell(row, col + 3)
-        formulaValDiff = '=IF(AND({}=0, {}=0), 0, {}-{})'.format(c1, c2, c1, c2)
+        formulaValDiff = '=IF(AND({}=0, {}=0), NA(), {}-{})'.format(c1, c2, c1, c2)
         self.worksheet.write_formula(writingCell, formulaValDiff, f)
 
     def write_deviation_formula_per(self, col, c1, c2, format_adapter=None):
         (row, col) = xl_cell_to_rowcol(c2)
         writing_cell = xl_rowcol_to_cell(row, col + 6)
-        formula_val_diff = '=IF({}=0, 0, ({}-{})/{})'.format(c2, c1, c2, c2)
+        # formula_val_diff = '=IF({}=0, 0, ({}-{})/{})'.format(c2, c1, c2, c2)
+        formula_val_diff = '=IF(AND({}=0, {}=0), NA(), ({}-{})/{})'.format(c2, c1, c1, c2, c2)
 
         cell_format = self.format['Percent']
         if format_adapter is not None:
@@ -172,10 +175,10 @@ class Worksheet:
         self.worksheet.merge_range('B1:D1', r1.name, self.format['Header'])
         self.worksheet.merge_range('E1:G1', r2.name, self.format['Header'])
         self.worksheet.merge_range('H1:J1',
-                                "increase {} --> {}, abs".format(r1.name, r2.name),
+                                "increase {} --> {}, abs".format(r2.name, r1.name),
                                    self.format['Header'])
         self.worksheet.merge_range('K1:M1',
-                                "increase {} --> {}, %".format(r1.name, r2.name),
+                                "increase {} --> {}, %".format(r2.name, r1.name),
                                    self.format['Header'])
         self.row += 1
         if len(diffSec) != 4:
@@ -261,18 +264,34 @@ class Worksheet:
                 else:
                     self.worksheet.write(self.row, col, 0, self.format['Num'])
 
-        # writing legend
-        legend = 'Cutoff values (change to alter colouring)'
-        self.worksheet.set_column(15, 16, len(legend))
+    def write_legend(self):
+        # self.worksheet.set_column(15, 16, len(legend))
         self.worksheet.merge_range('O4:P4', 'Legend', self.format['Header'])
-        self.worksheet.merge_range('O5:P5', legend, self.format['Header'])
-        self.worksheet.write('O6', 'decrease: ', self.format['Diff_decrease'])
-        self.worksheet.write('P6', 0, self.format['Diff_decrease'])
-        self.worksheet.merge_range('O7:P7', 'increase:  5%', self.format['Diff_increase_small'])
-        self.worksheet.merge_range('O8:P8', 'big increase:  10%', self.format['Diff_increase_big'])
+        self.worksheet.merge_range('O5:P5', 'Cutoff values (change to alter colouring)', self.format['Header'])
+        self.worksheet.write_string('O6', 'decrease: ', self.format['Diff_decrease'])
+        self.worksheet.write_number('P6', 0, self.format['Diff_decrease'])
+        self.worksheet.write_string('O7', 'increase: ', self.format['Diff_increase_small'])
+        self.worksheet.write_number('P7', 0.05, self.format['Diff_increase_small'])
+        self.worksheet.write_string('O8', 'big increase: ', self.format['Diff_increase_big'])
+        self.worksheet.write_number('P8', 0.10, self.format['Diff_increase_big'])
+        self.worksheet.set_column('O6:O8', 20)
+        self.worksheet.set_column('P6:P8', 7)
 
-        # conditional formatting the percentages columns
-        conRange = 'K3:M113'
+
+    def add_conditional_formatting(self):
+        # data block, current release
+        self.worksheet.conditional_format('B3:D110', {'type':     'formula',
+                                                     'criteria': '=ISNA(H3)',
+                                                     'format':    self.format['val_na']})
+        # data block, previous release
+        self.worksheet.conditional_format('E3:G110', {'type':     'formula',
+                                                     'criteria': '=ISNA(H3)',
+                                                     'format':    self.format['val_na']})
+        conRange = 'H3:M110'
+        self.worksheet.conditional_format(conRange, {'type':     'formula',
+                                                     'criteria': '=ISNA(H3)',
+                                                     'format':    self.format['val_na']})
+        conRange = 'K3:M110'
         self.worksheet.conditional_format(conRange, {'type':     'cell',
                                                      'criteria': '<',
                                                      'value':     0,
@@ -286,6 +305,17 @@ class Worksheet:
                                                      'criteria': '>',
                                                      'value':     0.10,
                                                      'format':    self.format['Diff_increase_big']})
+
+        conRange = 'H3:J110'
+        self.worksheet.conditional_format(conRange, {'type':     'formula',
+                                                     'criteria': '=AND(ISNUMBER(K3), K3<$P$6)',
+                                                     'format':    self.format['Diff_decrease']})
+        self.worksheet.conditional_format(conRange, {'type':     'formula',
+                                                     'criteria': '=AND(ISNUMBER(K3), K3>=$P$8)',
+                                                     'format':    self.format['Diff_increase_big']})
+        self.worksheet.conditional_format(conRange, {'type':     'formula',
+                                                     'criteria': '=AND(ISNUMBER(K3), K3>=$P$7)',
+                                                     'format':    self.format['Diff_increase_small']})
 
     def set_column_width(self, r):
         listOfMaxNamesLength = []
@@ -312,11 +342,13 @@ class Writer:
         self.format = {}
         self.format['Header'] = self.workbook.add_format({'bold': True, 'underline': True, 'align': 'center', 'center_across': True,
                                                           'font_name': 'Arial', 'font_size': 10})
-        self.format['Diff_decrease'] = self.workbook.add_format({'bg_color': '#ff6633', 'font_name': 'Arial', 'font_size': 10, 'num_format': '0.00%'})
-        self.format['Diff_increase_small'] = self.workbook.add_format({'bg_color': '#00ff00', 'font_name': 'Arial', 'font_size': 10})
-        self.format['Diff_increase_big'] = self.workbook.add_format({'bg_color': '#008080', 'font_name': 'Arial', 'font_size': 10})
-        self.format['Percent'] = self.workbook.add_format({'num_format': '0.00%', 'font_name': 'Arial', 'font_size': 10})
-        self.format['Num'] = self.workbook.add_format({'num_format': '#,###', 'font_name': 'Arial', 'font_size': 10})
+        self.format['Diff_decrease'] = self.workbook.add_format({'bg_color': '#ff6633', 'font_name': 'Arial', 'font_size': 10, 'num_format': '0.0%'})
+        self.format['Diff_increase_small'] = self.workbook.add_format({'bg_color': '#00ff00', 'font_name': 'Arial', 'font_size': 10, 'num_format': '0.0%'})
+        self.format['Diff_increase_big'] = self.workbook.add_format({'bg_color': '#008080', 'font_name': 'Arial', 'font_size': 10, 'num_format': '0.0%'})
+        self.format['Percent'] = self.workbook.add_format({'num_format': '0.0%', 'font_name': 'Arial', 'font_size': 10})
+        self.format['Num'] = self.workbook.add_format({'num_format': '#,###0', 'font_name': 'Arial', 'font_size': 10})
+        self.format['val_na'] = self.workbook.add_format({
+            'bg_color': '#e7e7e7', 'color' : '#9f9f9f', 'font_name': 'Arial', 'font_size': 10})
 
     # take a report class and write to a worksheet
     def writeReport(self, report):
@@ -328,7 +360,6 @@ class Writer:
         worksheet.freeze_panes(1, 1)
 
     def writeDiffReport(self, r1, r2):
-        xUtil = XlsUtil()
         print("r1.name: {}; r2.name: {}".format(r1.name, r2.name))
         worksheet = Worksheet(self.workbook, self.format,
                               "compare-{}".format(xUtil.generate_deviations_sheet_name(r1.name, r2.name)))
@@ -339,6 +370,9 @@ class Writer:
 
         for diffSec in diffR.diffSec:
             worksheet.appendDiff(diffSec, r1, r2)
+
+        worksheet.write_legend()
+        worksheet.add_conditional_formatting()
 
 
     def close(self):
