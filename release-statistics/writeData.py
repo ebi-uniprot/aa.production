@@ -266,14 +266,16 @@ class Worksheet:
 
     def write_legend(self):
         # self.worksheet.set_column(15, 16, len(legend))
-        self.worksheet.merge_range('O4:P4', 'Legend', self.format['Header'])
-        self.worksheet.merge_range('O5:P5', 'Cutoff values (change to alter colouring)', self.format['Header'])
-        self.worksheet.write_string('O6', 'decrease: ', self.format['Diff_decrease'])
-        self.worksheet.write_number('P6', 0, self.format['Diff_decrease'])
-        self.worksheet.write_string('O7', 'increase: ', self.format['Diff_increase_small'])
-        self.worksheet.write_number('P7', 0.05, self.format['Diff_increase_small'])
-        self.worksheet.write_string('O8', 'big increase: ', self.format['Diff_increase_big'])
-        self.worksheet.write_number('P8', 0.10, self.format['Diff_increase_big'])
+        self.worksheet.merge_range('O4:P4', 'Legend',
+                                   self.borders_appender.append_borders(self.format['Header'], is_left=True, is_right=True, is_top=True))
+        self.worksheet.merge_range('O5:P5', 'Cutoff values (change to alter colouring)',
+                                   self.borders_appender.append_borders_vertical(self.format['Header']))
+        self.worksheet.write_string('O6', 'decrease: ', self.borders_appender.append_border_left(self.format['Diff_decrease']))
+        self.worksheet.write_number('P6', 0, self.borders_appender.append_border_right(self.format['Diff_decrease']))
+        self.worksheet.write_string('O7', 'increase: ', self.borders_appender.append_border_left(self.format['Diff_increase_small']))
+        self.worksheet.write_number('P7', 0.05, self.borders_appender.append_border_right(self.format['Diff_increase_small']))
+        self.worksheet.write_string('O8', 'big increase: ', self.borders_appender.append_borders(self.format['Diff_increase_big'], is_left=True, is_bottom=True))
+        self.worksheet.write_number('P8', 0.10, self.borders_appender.append_borders(self.format['Diff_increase_big'], is_right=True, is_bottom=True))
         self.worksheet.set_column('O6:O8', 20)
         self.worksheet.set_column('P6:P8', 7)
 
