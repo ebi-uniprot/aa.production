@@ -175,10 +175,10 @@ class Worksheet:
         self.worksheet.merge_range('B1:D1', r1.name, self.format['Header'])
         self.worksheet.merge_range('E1:G1', r2.name, self.format['Header'])
         self.worksheet.merge_range('H1:J1',
-                                "increase {} --> {}, abs".format(r2.name, r1.name),
+                                "increase {} → {}, abs".format(r2.name, r1.name),
                                    self.format['Header'])
         self.worksheet.merge_range('K1:M1',
-                                "increase {} --> {}, %".format(r2.name, r1.name),
+                                "increase {} → {}, %".format(r2.name, r1.name),
                                    self.format['Header'])
         self.row += 1
         if len(diffSec) != 4:
