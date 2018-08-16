@@ -19,7 +19,7 @@ xUtil = XlsUtil()
 class Worksheet:
     def __init__(self, workbook, formatting, name):
         self.worksheet = workbook.add_worksheet(name)
-        self.format = formatting
+        self.formats = formatting
         self.row = 0
         self.borders_appender = BorderFormatAppender(workbook)
 
@@ -102,18 +102,18 @@ class Worksheet:
 
     def print_headers_in_deviation_report(self, name, headers):
         # write headers
-        self.worksheet.write(self.row, 0, name, self.format['Header'])
+        self.worksheet.write(self.row, 0, name, self.formats.fmt_header)
         col = 1
         while col <= 12:
             # odd number of columns appended on each iteration, therefore can discriminate based on odd/even
             cur_border_appender = self.borders_appender if col % 2 == 0 else None
-            col = self.write_headers(col, headers, self.format['Header'], cur_border_appender)
+            col = self.write_headers(col, headers, self.formats.fmt_header, cur_border_appender)
 
     def write_global_formula(self, c, tremblCell):
         (row, col) = xl_cell_to_rowcol(c)
         writingCell = xl_rowcol_to_cell(row, col + 1)
         formulaGlobal = '={}/{}'.format(c, tremblCell)
-        self.worksheet.write_formula(writingCell, formulaGlobal, self.format['Percent'])
+        self.worksheet.write_formula(writingCell, formulaGlobal, self.formats.fmt_num_rel)
         return writingCell
 
     def write_deviation_formula_abs(self, col, c1, c2, f):
@@ -128,7 +128,7 @@ class Worksheet:
         # formula_val_diff = '=IF({}=0, 0, ({}-{})/{})'.format(c2, c1, c2, c2)
         formula_val_diff = '=IF(AND({}=0, {}=0), NA(), ({}-{})/{})'.format(c2, c1, c1, c2, c2)
 
-        cell_format = self.format['Percent']
+        cell_format = self.formats.fmt_num_rel
         if format_adapter is not None:
             cell_format = format_adapter(cell_format)
         #     cell_format = format_adapter.append_borders(f, is_left=(0 == h_idx), is_right=(len(h) - 1 == h_idx)) \
@@ -136,26 +136,26 @@ class Worksheet:
         self.worksheet.write_formula(writing_cell, formula_val_diff, cell_format)
 
     def append(self, s):
-        self.worksheet.write(self.row, 0, s.name, self.format['Header'])
+        self.worksheet.write(self.row, 0, s.name, self.formats.fmt_header)
         if not s.is_footer:
             # from the next row, write the data
-            self.write_headers(1, s.headers, self.format['Header'])
+            self.write_headers(1, s.headers, self.formats.fmt_header)
             self.row += 1
 
             for (name, numbers) in s.data:
-                self.worksheet.write(self.row, 0, name, self.format['Num'])
-                self.write_numbers(1, numbers, self.format['Num'])
+                self.worksheet.write(self.row, 0, name, self.formats.fmt_num_abs)
+                self.write_numbers(1, numbers, self.formats.fmt_num_abs)
                 self.row += 1
         else:
-            self.worksheet.merge_range(self.row, 0, self.row, 6, s.name, self.format['Header'])
+            self.worksheet.merge_range(self.row, 0, self.row, 6, s.name, self.formats.fmt_header)
             self.row += 1
-            self.worksheet.merge_range(self.row, 0, self.row, 2, s.longHeader, self.format['Header'])
+            self.worksheet.merge_range(self.row, 0, self.row, 2, s.longHeader, self.formats.fmt_header)
             self.row += 1
 
             numberCells = []
             for (name, number) in s.data:
-                self.worksheet.write(self.row, 0, name, self.format['Num'])
-                oneCell = self.write_1num_cn(self.row, 2, number[0], self.format['Num'])
+                self.worksheet.write(self.row, 0, name, self.formats.fmt_num_abs)
+                oneCell = self.write_1num_cn(self.row, 2, number[0], self.formats.fmt_num_abs)
                 numberCells.append(oneCell)
                 self.row += 1
 
@@ -172,14 +172,14 @@ class Worksheet:
 
     def appendDiff(self, diffSec, r1, r2):
         # merge the cells for main header
-        self.worksheet.merge_range('B1:D1', r1.name, self.format['Header'])
-        self.worksheet.merge_range('E1:G1', r2.name, self.format['Header'])
+        self.worksheet.merge_range('B1:D1', r1.name, self.formats.fmt_header)
+        self.worksheet.merge_range('E1:G1', r2.name, self.formats.fmt_header)
         self.worksheet.merge_range('H1:J1',
                                 "increase {} → {}, abs".format(r2.name, r1.name),
-                                   self.format['Header'])
+                                   self.formats.fmt_header)
         self.worksheet.merge_range('K1:M1',
                                 "increase {} → {}, %".format(r2.name, r1.name),
-                                   self.format['Header'])
+                                   self.formats.fmt_header)
         self.row += 1
         if len(diffSec) != 4:
             (name, headers, diffData) = diffSec
@@ -191,21 +191,21 @@ class Worksheet:
                 # when there is a difference in name, only write one set of data
                 if len(line) == 2:
                     (lineName, nb) = line
-                    self.worksheet.write(self.row, col, lineName, self.format['Header'])
+                    self.worksheet.write(self.row, col, lineName, self.formats.fmt_header)
                     col += 1
-                    col = self.write_numbers(col, nb, self.format['Num'])
+                    col = self.write_numbers(col, nb, self.formats.fmt_num_abs)
 
                 # write two sets of data with the same name
                 elif len(line) == 3:
                     (lineName, nb1, nb2) = line
-                    self.worksheet.write(self.row, col, lineName, self.format['Num'])
+                    self.worksheet.write(self.row, col, lineName, self.formats.fmt_num_abs)
                     col += 1
-                    numberCells1 = self.write_numList_cn(self.row, col, nb1, self.format['Num'])
+                    numberCells1 = self.write_numList_cn(self.row, col, nb1, self.formats.fmt_num_abs)
                     col += 3
-                    numberCells2 = self.write_numList_cn(self.row, col, nb2, self.format['Num'], self.borders_appender)
+                    numberCells2 = self.write_numList_cn(self.row, col, nb2, self.formats.fmt_num_abs, self.borders_appender)
                     col += 3
                     for cell_idx, num_cell1 in enumerate(numberCells1):
-                        self.write_deviation_formula_abs(col, num_cell1, numberCells2[cell_idx], self.format['Num'])
+                        self.write_deviation_formula_abs(col, num_cell1, numberCells2[cell_idx], self.formats.fmt_num_abs)
                         if numberCells2[cell_idx] != 0:
                             format_adapter = None
                             if 0 == cell_idx and len(numberCells1) > 1:
@@ -214,7 +214,7 @@ class Worksheet:
                                 format_adapter = self.borders_appender.append_border_right
                             self.write_deviation_formula_per(col, num_cell1, numberCells2[cell_idx], format_adapter)
                         else:
-                            self.worksheet.write(self.row, col, 0, self.format['Num'])
+                            self.worksheet.write(self.row, col, 0, self.formats.fmt_num_abs)
 
                 else:
                     print("error")
@@ -223,23 +223,23 @@ class Worksheet:
 
         else:
             (name, longHeader, headers, diffData) = diffSec
-            self.worksheet.merge_range(self.row, 0, self.row, 12, name, self.format['Header'])
+            self.worksheet.merge_range(self.row, 0, self.row, 12, name, self.formats.fmt_header)
             self.row += 1
-            self.worksheet.write(self.row, 0, longHeader, self.format['Header'])
-            self.write_footer_headers(1, headers, self.format['Header'])
+            self.worksheet.write(self.row, 0, longHeader, self.formats.fmt_header)
+            self.write_footer_headers(1, headers, self.formats.fmt_header)
             self.row += 1
             numberCells1 = []
             numberCells2 = []
             for line in diffData.diffSec:
                 (lineName, nb1, nb2) = line
                 col = 0
-                self.worksheet.write(self.row, col, lineName, self.format['Num'])
+                self.worksheet.write(self.row, col, lineName, self.formats.fmt_num_abs)
                 # start to write the entries at column 2, to line up with 'entries' column
                 col += 2
-                oneCell1 = self.write_1num_cn(self.row, col, nb1[0], self.format['Num'])
+                oneCell1 = self.write_1num_cn(self.row, col, nb1[0], self.formats.fmt_num_abs)
                 numberCells1.append(oneCell1)
                 col += 3
-                oneCell2 = self.write_1num_cn(self.row, col, nb2[0], self.format['Num'])
+                oneCell2 = self.write_1num_cn(self.row, col, nb2[0], self.formats.fmt_num_abs)
                 numberCells2.append(oneCell2)
                 col += 3
                 self.row += 1
@@ -256,26 +256,26 @@ class Worksheet:
                 formula_cell_2.append(cell2)
 
             for cell_idx in range(0, len(numberCells1)):
-                self.write_deviation_formula_abs(col, numberCells1[cell_idx], numberCells2[cell_idx], self.format['Num'])
-                self.write_deviation_formula_abs(col + 1, formula_cell_1[cell_idx], formula_cell_2[cell_idx], self.format['Percent'])
+                self.write_deviation_formula_abs(col, numberCells1[cell_idx], numberCells2[cell_idx], self.formats.fmt_num_abs)
+                self.write_deviation_formula_abs(col + 1, formula_cell_1[cell_idx], formula_cell_2[cell_idx], self.formats.fmt_num_rel)
                 if numberCells2[cell_idx] != 0:
                     self.write_deviation_formula_per(col, numberCells1[cell_idx], numberCells2[cell_idx])
                     self.write_deviation_formula_per(col + 1, formula_cell_1[cell_idx], formula_cell_2[cell_idx])
                 else:
-                    self.worksheet.write(self.row, col, 0, self.format['Num'])
+                    self.worksheet.write(self.row, col, 0, self.formats.fmt_num_abs)
 
     def write_legend(self):
         # self.worksheet.set_column(15, 16, len(legend))
         self.worksheet.merge_range('O4:P4', 'Legend',
-                                   self.borders_appender.append_borders(self.format['Header'], is_left=True, is_right=True, is_top=True))
+                                   self.borders_appender.append_borders(self.formats.fmt_header, is_left=True, is_right=True, is_top=True))
         self.worksheet.merge_range('O5:P5', 'Cutoff values (change to alter colouring)',
-                                   self.borders_appender.append_borders_vertical(self.format['Header']))
-        self.worksheet.write_string('O6', 'decrease: ', self.borders_appender.append_border_left(self.format['Diff_decrease']))
-        self.worksheet.write_number('P6', 0, self.borders_appender.append_border_right(self.format['Diff_decrease']))
-        self.worksheet.write_string('O7', 'increase: ', self.borders_appender.append_border_left(self.format['Diff_increase_small']))
-        self.worksheet.write_number('P7', 0.05, self.borders_appender.append_border_right(self.format['Diff_increase_small']))
-        self.worksheet.write_string('O8', 'big increase: ', self.borders_appender.append_borders(self.format['Diff_increase_big'], is_left=True, is_bottom=True))
-        self.worksheet.write_number('P8', 0.10, self.borders_appender.append_borders(self.format['Diff_increase_big'], is_right=True, is_bottom=True))
+                                   self.borders_appender.append_borders_vertical(self.formats.fmt_header))
+        self.worksheet.write_string('O6', 'decrease: ', self.borders_appender.append_border_left(self.formats.fmt_diff_decrease_rel))
+        self.worksheet.write_number('P6', 0, self.borders_appender.append_border_right(self.formats.fmt_diff_decrease_rel))
+        self.worksheet.write_string('O7', 'increase: ', self.borders_appender.append_border_left(self.formats.fmt_diff_increase_small_rel))
+        self.worksheet.write_number('P7', 0.05, self.borders_appender.append_border_right(self.formats.fmt_diff_increase_small_rel))
+        self.worksheet.write_string('O8', 'big increase: ', self.borders_appender.append_borders(self.formats.fmt_diff_increase_big_rel, is_left=True, is_bottom=True))
+        self.worksheet.write_number('P8', 0.10, self.borders_appender.append_borders(self.formats.fmt_diff_increase_big_rel, is_right=True, is_bottom=True))
         self.worksheet.set_column('O6:O8', 20)
         self.worksheet.set_column('P6:P8', 7)
 
@@ -284,40 +284,40 @@ class Worksheet:
         # data block, current release
         self.worksheet.conditional_format('B3:D110', {'type':     'formula',
                                                      'criteria': '=ISNA(H3)',
-                                                     'format':    self.format['val_na']})
+                                                     'format':    self.formats.fmt_value_na})
         # data block, previous release
         self.worksheet.conditional_format('E3:G110', {'type':     'formula',
                                                      'criteria': '=ISNA(H3)',
-                                                     'format':    self.format['val_na']})
-        conRange = 'H3:M110'
-        self.worksheet.conditional_format(conRange, {'type':     'formula',
-                                                     'criteria': '=ISNA(H3)',
-                                                     'format':    self.format['val_na']})
-        conRange = 'K3:M110'
-        self.worksheet.conditional_format(conRange, {'type':     'cell',
+                                                     'format':    self.formats.fmt_value_na})
+        # differences block, both abs + rel:
+        self.worksheet.conditional_format('H3:M110', {'type': 'formula',
+                                                      'criteria': '=ISNA(H3)',
+                                                      'format': self.formats.fmt_value_na})
+        range_diff_abs = 'H3:J110'
+        self.worksheet.conditional_format(range_diff_abs, {'type':     'formula',
+                                                     'criteria': '=AND(ISNUMBER(K3), K3<$P$6)',
+                                                     'format':    self.formats.fmt_diff_decrease_abs})
+        self.worksheet.conditional_format(range_diff_abs, {'type':     'formula',
+                                                     'criteria': '=AND(ISNUMBER(K3), K3>=$P$8)',
+                                                     'format':    self.formats.fmt_diff_increase_big_abs})
+        self.worksheet.conditional_format(range_diff_abs, {'type':     'formula',
+                                                     'criteria': '=AND(ISNUMBER(K3), K3>=$P$7)',
+                                                     'format':    self.formats.fmt_diff_increase_small_abs})
+
+        range_diff_rel = 'K3:M110'
+        self.worksheet.conditional_format(range_diff_rel, {'type':     'cell',
                                                      'criteria': '<',
                                                      'value':     0,
-                                                     'format':    self.format['Diff_decrease']})
-        self.worksheet.conditional_format(conRange, {'type':     'cell',
+                                                     'format':    self.formats.fmt_diff_decrease_rel})
+        self.worksheet.conditional_format(range_diff_rel, {'type':     'cell',
                                                      'criteria': 'between',
                                                      'minimum':   0.05,
                                                      'maximum':   0.10,
-                                                     'format':    self.format['Diff_increase_small']})
-        self.worksheet.conditional_format(conRange, {'type':     'cell',
+                                                     'format':    self.formats.fmt_diff_increase_small_rel})
+        self.worksheet.conditional_format(range_diff_rel, {'type':     'cell',
                                                      'criteria': '>',
                                                      'value':     0.10,
-                                                     'format':    self.format['Diff_increase_big']})
-
-        conRange = 'H3:J110'
-        self.worksheet.conditional_format(conRange, {'type':     'formula',
-                                                     'criteria': '=AND(ISNUMBER(K3), K3<$P$6)',
-                                                     'format':    self.format['Diff_decrease']})
-        self.worksheet.conditional_format(conRange, {'type':     'formula',
-                                                     'criteria': '=AND(ISNUMBER(K3), K3>=$P$8)',
-                                                     'format':    self.format['Diff_increase_big']})
-        self.worksheet.conditional_format(conRange, {'type':     'formula',
-                                                     'criteria': '=AND(ISNUMBER(K3), K3>=$P$7)',
-                                                     'format':    self.format['Diff_increase_small']})
+                                                     'format':    self.formats.fmt_diff_increase_big_rel})
 
     def set_column_width(self, r):
         listOfMaxNamesLength = []
@@ -336,25 +336,42 @@ class Worksheet:
         self.worksheet.set_column(1, 12, 10)
 
 
+class CellFormats:
+    def __init__(self, workbook):
+        from cell_format_factory import CellFormatFactory
+
+        # base font properties for all other formats
+        prop_base_font = CellFormatFactory(workbook, {'font_name': 'Arial', 'font_size': 10})
+
+        self.fmt_header = prop_base_font.add_properties(
+            {'bold': True, 'underline': True, 'align': 'center', 'center_across': True}).make()
+        self.fmt_value_na = prop_base_font.add_properties(
+            {'bg_color': '#e7e7e7', 'color': '#9f9f9f'}).make()
+
+        # base cell format for all relative number formats
+        prop_num_rel = prop_base_font.add_properties({'num_format': '0.0%'})
+        self.fmt_num_rel = prop_num_rel.make()
+        self.fmt_diff_decrease_rel = prop_num_rel.add_properties({'bg_color': '#ff6633'}).make()
+        self.fmt_diff_increase_small_rel = prop_num_rel.add_properties({'bg_color': '#00ff00'}).make()
+        self.fmt_diff_increase_big_rel = prop_num_rel.add_properties({'bg_color': '#008080'}).make()
+
+        # base cell format for all absolute number formats
+        prop_num_abs = prop_base_font.add_properties({'num_format': '#,###0'})
+        self.fmt_num_abs = prop_num_abs.make()
+        self.fmt_diff_decrease_abs = prop_num_abs.add_properties({'bg_color': '#ff6633'}).make()
+        self.fmt_diff_increase_small_abs = prop_num_abs.add_properties({'bg_color': '#00ff00'}).make()
+        self.fmt_diff_increase_big_abs = prop_num_abs.add_properties({'bg_color': '#008080'}).make()
+
 
 # Writer class to open a workbook and write in the worksheets.
 class Writer:
     def __init__(self, filename):
         self.workbook = xlsxwriter.Workbook(filename)
-        self.format = {}
-        self.format['Header'] = self.workbook.add_format({'bold': True, 'underline': True, 'align': 'center', 'center_across': True,
-                                                          'font_name': 'Arial', 'font_size': 10})
-        self.format['Diff_decrease'] = self.workbook.add_format({'bg_color': '#ff6633', 'font_name': 'Arial', 'font_size': 10, 'num_format': '0.0%'})
-        self.format['Diff_increase_small'] = self.workbook.add_format({'bg_color': '#00ff00', 'font_name': 'Arial', 'font_size': 10, 'num_format': '0.0%'})
-        self.format['Diff_increase_big'] = self.workbook.add_format({'bg_color': '#008080', 'font_name': 'Arial', 'font_size': 10, 'num_format': '0.0%'})
-        self.format['Percent'] = self.workbook.add_format({'num_format': '0.0%', 'font_name': 'Arial', 'font_size': 10})
-        self.format['Num'] = self.workbook.add_format({'num_format': '#,###0', 'font_name': 'Arial', 'font_size': 10})
-        self.format['val_na'] = self.workbook.add_format({
-            'bg_color': '#e7e7e7', 'color' : '#9f9f9f', 'font_name': 'Arial', 'font_size': 10})
+        self.formats = CellFormats(self.workbook)
 
     # take a report class and write to a worksheet
     def writeReport(self, report):
-        worksheet = Worksheet(self.workbook, self.format, report.name)
+        worksheet = Worksheet(self.workbook, self.formats, report.name)
         for s in report.sections:
             worksheet.append(s)
         worksheet.set_column_width(report)
@@ -363,7 +380,7 @@ class Writer:
 
     def writeDiffReport(self, r1, r2):
         print("r1.name: {}; r2.name: {}".format(r1.name, r2.name))
-        worksheet = Worksheet(self.workbook, self.format,
+        worksheet = Worksheet(self.workbook, self.formats,
                               "compare-{}".format(xUtil.generate_deviations_sheet_name(r1.name, r2.name)))
         worksheet.freeze_panes(1, 1)
         # set column width with r1 as only one set of lineNames to be compared
