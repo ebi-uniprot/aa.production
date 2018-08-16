@@ -31,7 +31,7 @@ class BorderFormatAppender:
 
         return self.add_to_format(cell_format, extra_props)
 
-    def add_to_format(self, existing_format, dict_of_properties):
+    def add_to_format(self, existing_format, extra_properties):
         """Give a format you want to extend and a dict of the properties you want to
         extend it with, and you get them returned in a single format"""
         new_dict = {}
@@ -41,6 +41,6 @@ class BorderFormatAppender:
         del new_dict['escapes']
 
         uber_dict = new_dict.copy()
-        uber_dict.update(dict_of_properties)
+        uber_dict.update(extra_properties)
         uber_dict.pop('dxf_format_indices', None)
         return self.workbook.add_format(uber_dict)
