@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 
 from border_format_appender import BorderFormatAppender
@@ -17,6 +18,9 @@ xUtil = XlsUtil()
 
 # Worksheet class for writing individual reports and deviation report
 class Worksheet:
+
+    TR_ENTRIES_LABEL = 'TrEmbl entries'
+
     def __init__(self, workbook, formatting, name):
         self.worksheet = workbook.add_worksheet(name)
         self.formats = formatting
@@ -170,17 +174,54 @@ class Worksheet:
         (row, col) = xl_cell_to_rowcol(cell_name)
         return xl_rowcol_to_cell(row, col, row_abs=True)
 
-    def appendDiff(self, diffSec, r1, r2):
+    def add_trembl_entries_line(self, diff_sections,r1, r2):
+        "returns numeric, i.e. zero-based row number!"
+        systems_section_headers = next(cur_sect for cur_sect in diff_sections if cur_sect[0] == 'Systems')[1]
+        # print "predictions", "entries", "rules" headers 4 times:
+        self.row += 1
+        self.print_headers_in_deviation_report('', systems_section_headers)
+        self.row += 1
+        self.print_headers_in_deviation_report(self.TR_ENTRIES_LABEL, [])
+
+        tr_entries_num_r1 = self.extract_trembl_entries(r1)
+        tr_entries_num_r2 = self.extract_trembl_entries(r2)
+
+        col = 1
+        trembl_entries_row = self.row
+        self.write_numList_cn(trembl_entries_row, col, [-1, tr_entries_num_r1], self.formats.fmt_num_abs)
+        self.write_numList_cn(trembl_entries_row, col+3, [-1, tr_entries_num_r2], self.formats.fmt_num_abs)
+        self.row += 1
+        return trembl_entries_row
+
+    def fillin_trembl_predictions_value(self, predictions_col_name, trembl_entries_row, rows_systems):
+        self.worksheet.write_formula("{}{}".format(predictions_col_name, trembl_entries_row),
+                                     "=SUM({}{}:{}{})".format(predictions_col_name, rows_systems[0],
+                                                              predictions_col_name, rows_systems[1]),
+                                     self.formats.fmt_num_abs)
+
+    def extract_trembl_entries(self, r1):
+        # TODO: use formula instead of direct value insertion
+        rep1_global_sect = next(cur_sect for cur_sect in r1.sections if cur_sect.name == 'Global')
+        tr_entries = rep1_global_sect.data[-1][0]
+        if self.TR_ENTRIES_LABEL != tr_entries:
+            raise Exception('expected {} label, got: "{}"'.format(self.TR_ENTRIES_LABEL, tr_entries))
+        tr_entries_num = rep1_global_sect.data[-1][1][0]
+        return tr_entries_num
+
+    def format_diff_header(self, r1, r2):
         # merge the cells for main header
         self.worksheet.merge_range('B1:D1', r1.name, self.formats.fmt_header)
         self.worksheet.merge_range('E1:G1', r2.name, self.formats.fmt_header)
         self.worksheet.merge_range('H1:J1',
-                                "increase {} → {}, abs".format(r2.name, r1.name),
+                                   "increase {} → {}, abs".format(r2.name, r1.name),
                                    self.formats.fmt_header)
         self.worksheet.merge_range('K1:M1',
-                                "increase {} → {}, %".format(r2.name, r1.name),
+                                   "increase {} → {}, %".format(r2.name, r1.name),
                                    self.formats.fmt_header)
+
+    def appendDiff(self, diffSec, r1, r2):
         self.row += 1
+        row_start = self.row
         if len(diffSec) != 4:
             (name, headers, diffData) = diffSec
             self.print_headers_in_deviation_report(name, headers)
@@ -263,6 +304,7 @@ class Worksheet:
                     self.write_deviation_formula_per(col + 1, formula_cell_1[cell_idx], formula_cell_2[cell_idx])
                 else:
                     self.worksheet.write(self.row, col, 0, self.formats.fmt_num_abs)
+        return (row_start, self.row)
 
     def write_legend(self):
         # self.worksheet.set_column(15, 16, len(legend))
@@ -382,13 +424,29 @@ class Writer:
         print("r1.name: {}; r2.name: {}".format(r1.name, r2.name))
         worksheet = Worksheet(self.workbook, self.formats,
                               "compare-{}".format(xUtil.generate_deviations_sheet_name(r1.name, r2.name)))
-        worksheet.freeze_panes(1, 1)
+        worksheet.freeze_panes(3, 1)
         # set column width with r1 as only one set of lineNames to be compared
         worksheet.set_column_width(r1)
         diffR = DiffReport(r1, r2)
 
+        worksheet.format_diff_header(r1, r2)
+
+        trembl_entries_row = worksheet.add_trembl_entries_line(diffR.diffSec, r1, r2)
+        rows_systems = None
         for diffSec in diffR.diffSec:
-            worksheet.appendDiff(diffSec, r1, r2)
+            cur_used_rows = worksheet.appendDiff(diffSec, r1, r2)
+            if rows_systems is None and diffSec[0] and diffSec[0]=='Systems':
+                rows_systems = cur_used_rows
+
+        worksheet.fillin_trembl_predictions_value("B", trembl_entries_row+1,
+                                                  tuple([rows_systems[0]+2,rows_systems[1]]))
+        worksheet.fillin_trembl_predictions_value("E", trembl_entries_row+1,
+                                                  tuple([rows_systems[0]+2,rows_systems[1]]))
+        worksheet.write_deviation_formula_abs(-1, "B3", "E3", self.formats.fmt_num_abs)
+        worksheet.write_deviation_formula_abs(-1, "C3", "F3", self.formats.fmt_num_abs)
+
+        worksheet.write_deviation_formula_per(-1, "B3", "E3", None)
+        worksheet.write_deviation_formula_per(-1, "C3", "F3", None)
 
         worksheet.write_legend()
         worksheet.add_conditional_formatting()
