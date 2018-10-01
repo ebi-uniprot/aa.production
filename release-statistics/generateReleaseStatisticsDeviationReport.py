@@ -10,6 +10,8 @@ import argparse
 
 from readData import Report
 from writeData import Writer
+import os
+
 
 # parsing argument
 parser = argparse.ArgumentParser(description="AA Production Statistics Deviation Report")
@@ -36,7 +38,7 @@ args = parser.parse_args()
 # if args.prevStat is None:
 #     error_args("Please input the previous statistics report after \' --prevStat \'")
 
-
+print("Running deviation report in '{}'".format(os.getcwd()))
 report_prev = Report(args.prev_stat)
 report_cur = Report(args.cur_stat)
 
