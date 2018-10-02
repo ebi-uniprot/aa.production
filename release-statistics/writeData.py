@@ -175,7 +175,8 @@ class Worksheet:
         return xl_rowcol_to_cell(row, col, row_abs=True)
 
     def add_trembl_entries_line(self, diff_sections,r1, r2):
-        "returns numeric, i.e. zero-based row number!"
+        """Returns numeric, i.e. zero-based row number"""
+        # find 1st "Systems" section because it has all the "predictions", "entries", "rules" headers:
         systems_section_headers = next(cur_sect for cur_sect in diff_sections if cur_sect[0] == 'Systems')[1]
         # print "predictions", "entries", "rules" headers 4 times:
         self.row += 1
