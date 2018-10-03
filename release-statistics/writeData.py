@@ -153,9 +153,10 @@ class Worksheet:
         else:
             self.worksheet.merge_range(self.row, 0, self.row, 3, s.name, self.formats.fmt_header)
             self.row += 1
-            self.worksheet.write(self.row, 0, s.longHeader, self.formats.fmt_header)
+            #self.worksheet.write(self.row, 0, s.longHeader, self.formats.fmt_header)
+            self.write_headers(2, s.headers, self.formats.fmt_header)
             self.row += 1
-
+            
             numberCells = []
             for (name, number) in s.data:
                 self.worksheet.write(self.row, 0, name, self.formats.fmt_num_abs)
@@ -266,7 +267,7 @@ class Worksheet:
         else:
             # for the last two "Global" section
             (name, longHeader, headers, diffData) = diffSec
-            self.worksheet.merge_range(self.row, 0, self.row, 12, name, self.formats.fmt_header)
+            self.worksheet.merge_range(self.row, 0, self.row, 3, name, self.formats.fmt_header)
             self.row += 1
             self.worksheet.write(self.row, 0, longHeader, self.formats.fmt_header)
             self.write_footer_headers(1, headers, self.formats.fmt_header)

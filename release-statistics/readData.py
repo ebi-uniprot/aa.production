@@ -67,13 +67,15 @@ class Footer:
         x = line.split()
         data_start = 0
 
-        # when the name is only 'Global', take the next line as section name
+        if self.headers == []:
+            self.headers.append("entries") 
+            self.headers.append("% of TrEMBL")
+        
+        # TODO when the name is only 'Global', add the next line onto the section name
         # percentages are formula
         if self.name == "Global":
             if self.longHeader == None:
-                self.longHeader = line.strip().rstrip(':')
-            #if not x[1].isdecimal():
-             #   self.name += self.longHeader
+               self.longHeader = line.strip().rstrip(':')
 
             numbers = []
             if x[1].isdecimal():
