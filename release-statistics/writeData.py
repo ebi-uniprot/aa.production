@@ -151,9 +151,9 @@ class Worksheet:
                 self.write_numbers(1, numbers, self.formats.fmt_num_abs)
                 self.row += 1
         else:
-            self.worksheet.merge_range(self.row, 0, self.row, 6, s.name, self.formats.fmt_header)
+            self.worksheet.merge_range(self.row, 0, self.row, 3, s.name, self.formats.fmt_header)
             self.row += 1
-            self.worksheet.merge_range(self.row, 0, self.row, 2, s.longHeader, self.formats.fmt_header)
+            self.worksheet.write(self.row, 0, s.longHeader, self.formats.fmt_header)
             self.row += 1
 
             numberCells = []
@@ -210,7 +210,7 @@ class Worksheet:
         return tr_entries_num
 
     def format_diff_header(self, r1, r2):
-        # merge the cells for main header
+        # merge the cells for main headers in deviation report
         self.worksheet.merge_range('B1:D1', r1.name, self.formats.fmt_header)
         self.worksheet.merge_range('E1:G1', r2.name, self.formats.fmt_header)
         self.worksheet.merge_range('H1:J1',
@@ -264,6 +264,7 @@ class Worksheet:
                 self.row += 1
 
         else:
+            # for the last two "Global" section
             (name, longHeader, headers, diffData) = diffSec
             self.worksheet.merge_range(self.row, 0, self.row, 12, name, self.formats.fmt_header)
             self.row += 1

@@ -72,6 +72,8 @@ class Footer:
         if self.name == "Global":
             if self.longHeader == None:
                 self.longHeader = line.strip().rstrip(':')
+            #if not x[1].isdecimal():
+             #   self.name += self.longHeader
 
             numbers = []
             if x[1].isdecimal():
