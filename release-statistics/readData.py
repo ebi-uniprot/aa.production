@@ -18,10 +18,11 @@ class Report:
                 s = parse_section(in_file)
                 if s is None:
                     break
-                #print("writing section " + s.name)
+                # print("writing section " + s.name)
                 self.sections.append(s)
                 if s.is_footer:
                     self.footers.append(s)
+
 
 # create a class for a typical section which contains header and data parts
 class Section:
@@ -54,6 +55,7 @@ class Section:
                 numbers.append(float(i))
         self.data.append((" ".join(x[:data_start]), numbers))
 
+
 class Footer:
     def __init__(self, name):
         self.name = name.strip().rstrip(':')
@@ -67,25 +69,25 @@ class Footer:
         x = line.split()
         data_start = 0
 
-        if self.headers == []:
-            self.headers.append("entries") 
+        if not self.headers:
+            self.headers.append("entries")
             self.headers.append("% of TrEMBL")
-        
+
         # TODO when the name is only 'Global', add the next line onto the section name
         # percentages are formula
         if self.name == "Global":
-            if self.longHeader == None:
-               self.longHeader = line.strip().rstrip(':')
+            if self.longHeader is None:
+                self.longHeader = line.strip().rstrip(':')
+            else:
+                numbers = []
+                if x[1].isdecimal():
+                    numbers.append(float(x[1]))
+                    self.data.append((x[0], numbers))
 
-            numbers = []
-            if x[1].isdecimal():
-                numbers.append(float(x[1]))
-                self.data.append((x[0], numbers))
-
-            if x[0] == "TrEmbl":
-                self.tremblEntries.append(float(x[2]))
-                lineName = " ".join(x[:2]).strip().rstrip(":")
-                self.data.append((lineName, self.tremblEntries))
+                if x[0] == "TrEmbl":
+                    self.tremblEntries.append(float(x[2]))
+                    line_name = " ".join(x[:2]).strip().rstrip(":")
+                    self.data.append((line_name, self.tremblEntries))
 
         else:
             while not x[data_start].endswith(":") and not x[data_start].isdecimal():
@@ -94,19 +96,20 @@ class Footer:
             number = x[data_start + 1].rstrip(",")
             numbers = []
             if number.isdecimal():
-                lineName = " ".join(x[:(data_start + 1)]).strip().rstrip(":")
+                line_name = " ".join(x[:(data_start + 1)]).strip().rstrip(":")
                 numbers.append(float(number))
-                self.data.append((lineName, numbers))
+                self.data.append((line_name, numbers))
 
             for i, v in enumerate(x):
                 if v == "TrEmbl":
-                    tremblStart = i
-                    v2 = x[tremblStart + 1]
-                    lineNameList = [v, v2]
-                    lineName = " ".join(lineNameList).strip().rstrip(":")
-                    if x[tremblStart + 2].isdecimal():
-                        self.tremblEntries.append(float(x[tremblStart + 2]))
-                        self.data.append((lineName, self.tremblEntries))
+                    trembl_start = i
+                    v2 = x[trembl_start + 1]
+                    line_name_list = [v, v2]
+                    line_name = " ".join(line_name_list).strip().rstrip(":")
+                    if x[trembl_start + 2].isdecimal():
+                        self.tremblEntries.append(float(x[trembl_start + 2]))
+                        self.data.append((line_name, self.tremblEntries))
+
 
 # separate the file into sections whereas an empty line
 def parse_section(in_file):
