@@ -139,6 +139,13 @@ class Worksheet:
 
         self.worksheet.write_formula(writing_cell, formula_val_diff, cell_format)
 
+    def mergeLongName (self, name, longHeader):
+        if longHeader != None:
+            longName = name + ", " + longHeader
+            return longName
+        else:
+            return name
+
     def append(self, s):
         self.worksheet.write(self.row, 0, s.name, self.formats.fmt_header)
         if not s.is_footer:
@@ -151,7 +158,8 @@ class Worksheet:
                 self.write_numbers(1, numbers, self.formats.fmt_num_abs)
                 self.row += 1
         else:
-            self.worksheet.merge_range(self.row, 0, self.row, 3, s.name, self.formats.fmt_header)
+            longName = self.mergeLongName(s.name, s.longHeader)
+            self.worksheet.merge_range(self.row, 0, self.row, 3, longName, self.formats.fmt_header)
             self.row += 1
             #self.worksheet.write(self.row, 0, s.longHeader, self.formats.fmt_header)
             self.write_headers(2, s.headers, self.formats.fmt_header)
@@ -267,9 +275,10 @@ class Worksheet:
         else:
             # for the last two "Global" section
             (name, longHeader, headers, diffData) = diffSec
-            self.worksheet.merge_range(self.row, 0, self.row, 3, name, self.formats.fmt_header)
+            longName = self.mergeLongName(name, longHeader)
+            self.worksheet.merge_range(self.row, 0, self.row, 3, longName, self.formats.fmt_header)
             self.row += 1
-            self.worksheet.write(self.row, 0, longHeader, self.formats.fmt_header)
+            #self.worksheet.write(self.row, 0, longHeader, self.formats.fmt_header)
             self.write_footer_headers(1, headers, self.formats.fmt_header)
             self.row += 1
             numberCells1 = []
