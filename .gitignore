@@ -4,6 +4,9 @@
 *.swp
 *.xlsx
 
+# VScode stuff:
+**/.vscode/
+
 # python precompiled files
 **/__pycache__/
 **/*.pyc
