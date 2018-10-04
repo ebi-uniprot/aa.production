@@ -139,8 +139,9 @@ class Worksheet:
 
         self.worksheet.write_formula(writing_cell, formula_val_diff, cell_format)
 
-    def mergeLongName (self, name, longHeader):
-        if longHeader != None:
+    # add the long header to the "Global" section
+    def merge_long_name (self, name, longHeader):
+        if longHeader is not None:
             longName = name + ", " + longHeader
             return longName
         else:
@@ -158,7 +159,7 @@ class Worksheet:
                 self.write_numbers(1, numbers, self.formats.fmt_num_abs)
                 self.row += 1
         else:
-            longName = self.mergeLongName(s.name, s.longHeader)
+            longName = self.merge_long_name(s.name, s.longHeader)
             self.worksheet.merge_range(self.row, 0, self.row, 3, longName, self.formats.fmt_header)
             self.row += 1
             #self.worksheet.write(self.row, 0, s.longHeader, self.formats.fmt_header)
@@ -275,7 +276,7 @@ class Worksheet:
         else:
             # for the last two "Global" section
             (name, longHeader, headers, diffData) = diffSec
-            longName = self.mergeLongName(name, longHeader)
+            longName = self.merge_long_name(name, longHeader)
             self.worksheet.merge_range(self.row, 0, self.row, 3, longName, self.formats.fmt_header)
             self.row += 1
             #self.worksheet.write(self.row, 0, longHeader, self.formats.fmt_header)
@@ -386,8 +387,9 @@ class Worksheet:
                 listOfMaxNamesLength.append(maxLength)
         # add another 2 so that the length of column cover the whole text length
         self.worksheet.set_column(0, 0, max(listOfMaxNamesLength) + 2)
-        # set the following columns to a width of 10 (set to column 12 for the deviation report)
-        self.worksheet.set_column(1, 12, 10)
+        # set the following columns to a width to cover the length of the TrEMBL entries which 
+        # should be the longest number.
+        self.worksheet.set_column(1, 12, len(self.TR_ENTRIES_LABEL))
 
 
 class CellFormats:
