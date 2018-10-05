@@ -277,7 +277,7 @@ class Worksheet:
             # for the last two "Global" section
             (name, longHeader, headers, diffData) = diffSec
             longName = self.merge_long_name(name, longHeader)
-            self.worksheet.merge_range(self.row, 0, self.row, 3, longName, self.formats.fmt_header)
+            self.worksheet.merge_range(self.row, 0, self.row, 12, longName, self.formats.fmt_header)
             self.row += 1
             #self.worksheet.write(self.row, 0, longHeader, self.formats.fmt_header)
             self.write_footer_headers(1, headers, self.formats.fmt_header)
