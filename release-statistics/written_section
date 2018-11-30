@@ -1,0 +1,17 @@
+class WrittenSection:
+    """represents data section written out into the file
+
+    Attributes:
+        cell_top_left (str): address of the top left cell of the range occupied by the section
+        cell_btm_right (str): address of the bottom right cell of the range occupied by the section
+
+    """
+
+    def __init__(self, section):
+        """
+                Args:
+                    section (Section, Footer): section with data we're writing
+        """
+        self.section = section
+        self.cell_top_left = None
+        self.cell_btm_right = None
