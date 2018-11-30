@@ -435,7 +435,7 @@ class Writer:
         worksheet.freeze_panes(1, 1)
 
     def writeDiffReport(self, r1, r2):
-        print("r1.name: {}; r2.name: {}".format(r1.name, r2.name))
+        print("r1.name: {}; r2.name: {}\n".format(r1.name, r2.name))
         worksheet = Worksheet(self.workbook, self.formats,
                               "compare-{}".format(xUtil.generate_deviations_sheet_name(r1.name, r2.name)))
         worksheet.freeze_panes(3, 1)
